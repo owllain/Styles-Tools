@@ -969,3 +969,131 @@ input[type="text"]:focus, input[type="search"]:focus {
 .style-rockero { --style-accent: rgba(244, 63, 94, 0.5); }
 .style-corporate { --style-accent: rgba(212, 168, 67, 0.5); }
 
+/* Match reason inline text colors */
+.tag-ocasion-text { color: rgba(110, 231, 179, 0.5); }
+.tag-momento-text { color: rgba(147, 197, 253, 0.5); }
+.tag-clima-text { color: rgba(253, 186, 116, 0.5); }
+.tag-estilo-text { color: rgba(196, 181, 253, 0.5); }
+
+/* ============================================================
+   NOTES TEXTAREA
+   ============================================================ */
+
+textarea {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.06) transparent;
+}
+textarea::-webkit-scrollbar { width: 3px; }
+textarea::-webkit-scrollbar-track { background: transparent; }
+textarea::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 10px; }
+
+textarea:focus {
+  border-color: rgba(212, 168, 67, 0.2) !important;
+  box-shadow: 0 0 0 3px rgba(212, 168, 67, 0.05);
+}
+
+textarea::placeholder {
+  color: rgba(255, 255, 255, 0.15);
+}
+
+/* ============================================================
+   MIX & MATCH PREVIEW PANEL
+   ============================================================ */
+
+.mix-preview-strip {
+  position: relative;
+  overflow: hidden;
+}
+.mix-preview-strip::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(212,168,67,0.02) 0%, transparent 50%, rgba(139,92,246,0.015) 100%);
+  pointer-events: none;
+}
+
+/* ============================================================
+   ENHANCED HOVER MICRO-INTERACTIONS
+   ============================================================ */
+
+.weekly-card-shine:hover {
+  transform: translateY(-1px);
+}
+
+/* Smooth icon button transitions */
+button svg {
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+/* Card rank badge hover */
+.outfit-card-refined:hover [class*='w-8 h-8 rounded-lg'] {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ============================================================
+   RADAR CHART ENHANCED
+   ============================================================ */
+
+.style-dna-chart line {
+  stroke: rgba(255, 255, 255, 0.04);
+}
+.style-dna-chart text {
+  font-size: 10px;
+  fill: rgba(255, 255, 255, 0.35);
+  font-weight: 500;
+}
+.style-dna-chart .radar-label-dominant {
+  fill: rgba(251, 191, 36, 0.7);
+  font-weight: 700;
+  font-size: 11px;
+}
+
+/* ============================================================
+   COLLECTION CARD HOVER ENHANCED
+   ============================================================ */
+
+.collection-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.collection-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px -12px rgba(0, 0, 0, 0.4);
+}
+
+/* ============================================================
+   ADVISOR CHAT BUBBLE STYLES
+   ============================================================ */
+
+.chat-bubble-user {
+  background: rgba(212, 168, 67, 0.08);
+  border: 1px solid rgba(212, 168, 67, 0.12);
+}
+.chat-bubble-assistant {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* ============================================================
+   SUGGESTION CHIP ENHANCED
+   ============================================================ */
+
+.suggestion-chip {
+  transition: all 0.2s ease;
+}
+.suggestion-chip:hover {
+  background: rgba(139, 92, 246, 0.08) !important;
+  border-color: rgba(139, 92, 246, 0.15) !important;
+  transform: translateY(-1px);
+}
+
+/* ============================================================
+   PULSE ANIMATION FOR WORE BADGE
+   ============================================================ */
+
+@keyframes worn-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.15); }
+  50% { box-shadow: 0 0 0 4px rgba(16, 185, 129, 0); }
+}
+.worn-badge {
+  animation: worn-pulse 2.5s ease-in-out infinite;
+}

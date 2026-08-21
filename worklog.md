@@ -595,3 +595,101 @@ StyleVault is a comprehensive, production-quality outfit suggestion system at v8
 6. **Sound effects**: Subtle audio feedback for outfit selection and tab switching
 7. **Dark/Light theme toggle**: Although the noir theme is core, a light variant could work for daytime use
 8. **Export as PDF/PPTX**: Generate professional lookbooks from favorites or weekly plans
+
+---
+Task ID: 10
+Agent: Main Agent
+Task: v9.0 new features, styling polish, bug fixes
+
+Work Log:
+- **QA Testing**: Full QA via agent-browser on all 10 tabs, VLM analysis on 10 tab screenshots
+- **BUG FIX 1**: OutfitDetailDialog crashed with runtime error - `rate()` referenced undefined variable, changed to `onRate()`
+- **BUG FIX 2**: Dialog used `ratings[s.outfit.id]` (undefined) instead of `rating` prop, fixed to use singular prop
+- **BUG FIX 3**: Dialog used `worn[s.outfit.id]?.count` treating worn as Record, but it's `WornEntry | undefined`. Fixed to conditional render with `worn && ...` and `worn.count`
+- **BUG FIX 4**: Textarea `onSaveNote` called without optional chaining, could crash if prop undefined. Added `onSaveNote?.()`
+- **BUG FIX 5**: AdvisorSection greeting text contrast too low (`text-white/20`), increased to `text-white/40`
+- **BUG FIX 6**: Suggestion chips contrast too low (`text-violet-300/70`), increased to `text-violet-300/80`
+- **BUG FIX 7**: Inventory garment card description text too faint (`text-white/20`), increased to `text-white/30`
+- **FIX 8**: Style DNA radar chart - fill opacity 0.08→0.15, stroke opacity 0.5→0.6, strokeWidth 0.8→2, dot radius 1.8→4
+- **FIX 9**: Wardrobe cards now have subtle left border color tinted by garment colorHex
+- **NEW 1**: **"Wore This" quick action button** on every suggestion card (CheckCircle2 icon, emerald hover, calls markWorn + toast)
+- **NEW 2**: **"Why this?" match breakdown** on suggestion cards - shows which filters matched (ocasion + momento + clima + estetica) with color-coded text
+- **NEW 3**: **Outfit Personal Notes** - `useNotes()` hook with localStorage persistence, textarea in OutfitDetailDialog with "Notas Personales" section
+- **NEW 4**: **Mix & Match Live Preview Panel** - when garments are selected, shows a visual preview strip with mannequin icon, garment names, color dots, and color labels
+- **NEW 5**: **Enhanced CSS system** - 10 new CSS classes/rules:
+  - `.tag-ocasion-text/.tag-momento-text/.tag-clima-text/.tag-estilo-text` - inline match reason colors
+  - `textarea` styles - custom scrollbar, focus ring, placeholder
+  - `.mix-preview-strip` - gradient overlay for preview panel
+  - `.outfit-card-refined:hover` rank badge border enhancement
+  - `.style-dna-chart line/text` - radar grid and label styling
+  - `.collection-card` - enhanced hover with lift and shadow
+  - `.chat-bubble-user/.chat-bubble-assistant` - advisor chat styling
+  - `.suggestion-chip` - hover lift for advisor chips
+  - `@keyframes worn-pulse` - pulsing glow for worn-badge
+- **NEW 6**: Imported new icons: `PenLine, BookmarkPlus, Plus, StickyNote, Info, ShirtIco, RotateCcw, SparklesIcon`
+- **NEW 7**: Footer updated to v9.0 with "Notas + Preview" feature label
+- **STYLING**: Button SVG transitions for smoother icon interactions
+- **STYLING**: Collection cards enhanced hover with translateY(-2px) and deeper shadow
+- **STYLING": Weekly card shine hover with subtle lift
+
+Stage Summary:
+- App upgraded from v8.0 to v9.0
+- 9 bug fixes (4 critical runtime, 5 contrast/visibility)
+- 7 new features (wore button, why-this, notes, mix preview, CSS system, footer, imports)
+- 10+ new CSS rules/classes
+- File grew from 2481 to 2536 lines (+55 lines)
+- 0 lint errors, all 10 tabs verified working
+- Dialog crash fully resolved, notes feature working
+- Screenshots: qa-v9-final-*.png, qa-v9-dialog.png, qa-v9-mixmatch-*.png, qa-v9-stats-radar.png, qa-v9-footer.png
+
+---
+## Current Status (v9.0)
+
+### Project Assessment
+StyleVault is a comprehensive, production-quality outfit suggestion system at v9.0:
+- 130 curated outfit combinations, 46 garments across 8 categories
+- 10-tab responsive dark UI with framer-motion animations
+- 7 API endpoints (suggest, outfits list/detail, wardrobe, weekly, weather, collections)
+- 20+ features: suggestions with "why this" breakdown, weekly planner, inventory with color accents, explore, collections, calendar, mix&match with live preview, favorites, AI advisor, statistics with enhanced radar, style DNA, outfit sharing, comparison, color harmony, weather auto-detect, keyboard shortcuts, worn tracking, personal notes, "wore this" quick action
+- Style-colored left accent borders on outfit cards (noir=violet, old_money=emerald, rockero=rose, corporate=amber)
+- Scrollable tab bar with gradient fade edges
+- Keyboard shortcuts (Alt+1-0) for power users
+- Outfit personal notes persisted in localStorage
+- Mix & Match live preview panel showing selected garments
+- Deep noir glassmorphism theme with amber/gold accents and 18+ custom animations
+
+### Completed Modifications (This Session)
+- Fixed 9 bugs (4 critical runtime crashes, 5 contrast issues)
+- Added "Wore This" quick action button on suggestion cards
+- Added "Why this?" match breakdown with color-coded inline text
+- Added Outfit Personal Notes with localStorage persistence
+- Added Mix & Match live preview panel with mannequin icon
+- Enhanced Style DNA radar chart (bolder lines, larger dots, better labels)
+- Improved advisor contrast and suggestion chip styling
+- Added inventory card left border color tinting
+- Added 10+ new CSS classes for micro-interactions and polish
+- Updated footer to v9.0
+
+### Verification Results
+- `bun run lint`: 0 errors, 0 warnings
+- agent-browser QA: All 10 tabs render and function correctly
+- OutfitDetailDialog: Opens correctly, notes textarea works, ratings work, worn count displays
+- Mix & Match: Live preview panel renders when garments selected, search works
+- Suggestions: "Wore This" button, "Why this?" line, style accent borders all working
+- VLM analysis: All tabs verified, no visual bugs found
+
+### Known Issues
+- Turbopack cold-start for /api/suggest is slow (~30s first time) due to large wardrobe.ts import
+- Weather API depends on external wttr.in service (fallback to stale cache)
+- "1/2 Issue" badge in screenshots is Next.js DevTools overlay (dev-only, not a bug)
+- ShirtIcon imported twice (once as ShirtIcon, once as ShirtIco alias) - cosmetic only
+
+### Recommendations for Next Phase
+1. **Outfit image generation**: AI-generated visual mockups for each outfit combination
+2. **PWA support**: Make the app installable on mobile with service worker
+3. **Drag-and-drop weekly planner**: Reorder outfits by dragging
+4. **Custom collections**: Let users create and manage their own outfit collections
+5. **Advanced AI advisor with VLM**: Upload a photo and get outfit suggestions
+6. **Export as PDF/PPTX**: Generate professional lookbooks from favorites
+7. **Sound effects**: Subtle audio feedback for outfit selection
+8. **Cost Per Wear tracking**: Financial insights on wardrobe investment

@@ -1,0 +1,728 @@
+  1809→      setResults(detailed);
+  1810→    } catch { setResults([]); }
+  1811→    finally { setSearching(false); }
+  1812→  };
+  1813→
+  1814→  const filtered = filterCat ? garments.filter(g => g.categoria === filterCat) : garments;
+  1815→
+  1816→  return (
+  1817→    <div className="space-y-5">
+  1818→      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+  1819→        <h2 className="text-lg font-bold text-white/90 flex items-center gap-2"><Shuffle className="h-5 w-5 text-amber-400" />Mix & Match</h2>
+  1820→        <p className="text-xs text-white/30 mt-0.5">Selecciona prendas y encuentra outfits compatibles</p>
+  1821→      </motion.div>
+  1822→      {selected.length > 0 && (
+  1823→        <div className='space-y-3'>
+  1824→          <div className='flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-500/5 border border-amber-500/15'>
+  1825→            <span className='text-xs text-amber-400/80 font-medium'>{selected.length}/3 seleccionadas</span>
+  1826→            <div className='flex-1' />
+  1827→            <Button size='sm' onClick={search} disabled={searching} className='h-8 bg-amber-600/80 hover:bg-amber-500 rounded-lg text-xs gap-1.5 border border-amber-500/20'>
+  1828→              {searching ? <RefreshCw className='h-3 w-3 animate-spin' /> : <Search className='h-3 w-3' />}Buscar Outfits
+  1829→            </Button>
+  1830→            <button onClick={() => { setSelected([]); setResults([]); }} className='text-white/25 hover:text-white/50'><X className='h-4 w-4' /></button>
+  1831→          </div>
+  1832→          {/* Live Preview Panel */}
+  1833→          <div className='rounded-2xl border border-white/[0.05] bg-white/[0.015] p-4'>
+  1834→            <div className='flex items-center gap-2 mb-3'>
+  1835→              <ShirtIco className='h-3.5 w-3.5 text-white/20' />
+  1836→              <span className='text-[10px] font-semibold text-white/25 uppercase tracking-[0.12em]'>Vista Previa</span>
+  1837→            </div>
+  1838→            <div className='flex items-center gap-3'>
+  1839→              <div className='w-12 h-12 rounded-xl bg-white/[0.02] border border-white/[0.04] flex items-center justify-center'>
+  1840→                <ShirtIco className='h-6 w-6 text-white/10' />
+  1841→              </div>
+  1842→              <div className='flex-1 space-y-1.5'>
+  1843→                {garments.filter(g => selected.includes(g.id)).map(g => (
+  1844→                  <div key={g.id} className='flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-white/[0.02] border border-white/[0.03]'>
+  1845→                    <span className='chip-color w-2.5 h-2.5 rounded-full border border-white/10' style={{ backgroundColor: g.colorHex }} />
+  1846→                    <span className='text-[11px] text-white/50 font-medium'>{g.emoji} {g.nombre}</span>
+  1847→                    <span className='text-[9px] text-white/15 ml-auto'>{g.color}</span>
+  1848→                  </div>
+  1849→                ))}
+  1850→              </div>
+  1851→            </div>
+  1852→          </div>
+  1853→        </div>
+  1854→      )}
+  1855→      <div className="flex flex-wrap gap-1.5">
+  1856→        {CATEGORIES.map(cat => (
+  1857→          <button key={cat.id || 'all'} onClick={() => setFilterCat(cat.id)} className={`px-3 py-1.5 rounded-lg border text-[10px] font-medium transition-all duration-200 ${filterCat === cat.id ? 'bg-amber-500/10 border-amber-500/20 text-amber-300 shadow-[0_0_10px_rgba(212,168,67,0.06)]' : 'border-white/[0.03] text-white/25 hover:text-white/50 hover:bg-white/[0.02]'}`}>
+  1858→            {cat.emoji} {cat.label}
+  1859→          </button>
+  1860→        ))}
+  1861→      </div>
+  1862→      <div className="flex flex-wrap gap-2 max-h-52 overflow-y-auto pr-1">
+  1863→        {filtered.map(g => (
+  1864→          <button key={g.id} onClick={() => toggleGarment(g.id)} className={`garment-chip ${selected.includes(g.id) ? 'selected' : ''}`}>
+  1865→            <span className="chip-color" style={{ backgroundColor: g.colorHex }} />
+  1866→            <span className="text-xs">{g.emoji} {g.nombre}</span>
+  1867→          </button>
+  1868→        ))}
+  1869→      </div>
+  1870→      {results.length > 0 && (
+  1871→        <motion.div className="space-y-3" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+  1872→          <h3 className="text-sm font-semibold text-white/60 flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-400/60" />{results.length} outfit{results.length !== 1 ? 's' : ''} encontrado{results.length !== 1 ? 's' : ''}</h3>
+  1873→          {results.map(s => (
+  1874→            <div key={s.outfit.id} onClick={() => onViewDetail(s)} className="flex items-center gap-4 px-5 py-4 rounded-2xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] hover:border-white/[0.08] cursor-pointer transition-all duration-200 group">
+  1875→              <div className="flex -space-x-1.5">{s.outfit.paletaColores.map((c, i) => <div key={i} className="color-swatch w-7 h-7" style={{ backgroundColor: c, zIndex: 10 - i }} />)}</div>
+  1876→              <div className="flex-1 min-w-0">
+  1877→                <h4 className="text-sm font-semibold text-white/75 group-hover:text-white/90 truncate transition-colors">{s.outfit.nombre}</h4>
+  1878→                <p className="text-[11px] text-white/30 mt-0.5 truncate">{s.outfit.descripcion}</p>
+  1879→              </div>
+  1880→              <Eye className="h-4 w-4 text-white/10 group-hover:text-amber-400/60 transition-colors flex-shrink-0" />
+  1881→            </div>
+  1882→          ))}
+  1883→        </motion.div>
+  1884→      )}
+  1885→      {!searching && selected.length === 0 && results.length === 0 && (
+  1886→        <div className="flex flex-col items-center justify-center py-16 text-center">
+  1887→          <div className="empty-state-icon">
+  1888→            <Shuffle className="h-7 w-7 text-rose-400/30" />
+  1889→          </div>
+  1890→          <p className="text-sm font-medium text-white/40 mb-1.5">Selecciona prendas</p>
+  1891→          <p className="text-xs text-white/20 max-w-[240px] leading-relaxed">Elige hasta 3 prendas de tu guardarropa para encontrar outfits compatibles</p>
+  1892→        </div>
+  1893→      )}
+  1894→      {!searching && selected.length > 0 && results.length === 0 && (
+  1895→        <div className="flex flex-col items-center justify-center py-10 text-center">
+  1896→          <div className="empty-state-icon">
+  1897→            <Search className="h-7 w-7 text-white/15" />
+  1898→          </div>
+  1899→          <p className="text-sm font-medium text-white/35 mb-1.5">Busca outfits</p>
+  1900→          <p className="text-xs text-white/20 max-w-[200px] leading-relaxed">Haz clic en "Buscar Outfits" para encontrar combinaciones con tus prendas</p>
+  1901→        </div>
+  1902→      )}
+  1903→      {searching && <div className="space-y-2"><Skeleton className="h-20 rounded-xl" /><Skeleton className="h-20 rounded-xl w-4/5" /></div>}
+  1904→    </div>
+  1905→  );
+  1906→}
+  1907→
+  1908→/* ============================================================
+  1909→   AI ADVISOR SECTION
+  1910→   ============================================================ */
+  1911→function AdvisorSection() {
+  1912→  const [messages, setMessages] = useState<Array<{role: 'user' | 'assistant'; content: string; time: string }>>([]);
+  1913→  const [input, setInput] = useState('');
+  1914→  const [loading, setLoading] = useState(false);
+  1915→  const chatRef = useRef<HTMLDivElement>(null);
+  1916→  const inputRef = useRef<HTMLInputElement>(null);
+  1917→
+  1918→  const SUGGESTIONS = [
+  1919→    '\xbfQue me pongo para una junta importante?',
+  1920→    '\xbfOutfit para un concierto de metal?',
+  1921→    '\xbfCombina algo estilo old money',
+  1922→    '\xbfQue no deberia usar nunca?',
+  1923→    '\xbfSugiere un look de viernes casual',
+  1924→    '\xbfEstilo para una cita romantica?',
+  1925→  ];
+  1926→
+  1927→  useEffect(() => {
+  1928→    if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
+  1929→  }, [messages]);
+  1930→
+  1931→  const sendMessage = useCallback(async (text?: string) => {
+  1932→    const msg = (text || input).trim();
+  1933→    if (!msg || loading) return;
+  1934→    setInput('');
+  1935→    const time = new Date().toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' });
+  1936→    setMessages(prev => [...prev, { role: 'user', content: msg, time }]);
+  1937→    setLoading(true);
+  1938→    try {
+  1939→      const res = await fetch('/api/advisor', {
+  1940→        method: 'POST', headers: { 'Content-Type': 'application/json' },
+  1941→        body: JSON.stringify({ message: msg, sessionId: 'stylevault-chat' }),
+  1942→      });
+  1943→      const data = await res.json();
+  1944→      if (data.success) {
+  1945→        const aTime = new Date().toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' });
+  1946→        setMessages(prev => [...prev, { role: 'assistant', content: data.response, time: aTime }]);
+  1947→      } else {
+  1948→        setMessages(prev => [...prev, { role: 'assistant', content: 'Lo siento, no pude procesar tu pregunta. Intenta de nuevo.', time: new Date().toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' }) }]);
+  1949→      }
+  1950→    } catch {
+  1951→      setMessages(prev => [...prev, { role: 'assistant', content: 'Error de conexion. Verifica tu conexion e intenta de nuevo.', time: new Date().toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' }) }]);
+  1952→    }
+  1953→    finally { setLoading(false); }
+  1954→  }, [input, loading]);
+  1955→
+  1956→  const clearChat = useCallback(async () => {
+  1957→    try { await fetch('/api/advisor?sessionId=stylevault-chat', { method: 'DELETE' }); } catch {}
+  1958→    setMessages([]);
+  1959→  }, []);
+  1960→
+  1961→  return (
+  1962→    <div className="space-y-5">
+  1963→      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+  1964→        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+  1965→          <div>
+  1966→            <h2 className="text-lg font-bold text-white/90 flex items-center gap-2"><MessageSquare className="h-5 w-5 text-violet-400" />Asesor de Estilo IA</h2>
+  1967→            <p className="text-xs text-white/25 mt-0.5">Tu estilista personal impulsado por inteligencia artificial</p>
+  1968→          </div>
+  1969→          {messages.length > 0 && (
+  1970→            <Button variant="ghost" size="sm" onClick={clearChat} className="text-xs text-white/25 hover:text-white/50 h-8 gap-1.5"><Trash2 className="h-3 w-3" />Limpiar chat</Button>
+  1971→          )}
+  1972→        </div>
+  1973→      </motion.div>
+  1974→
+  1975→      <div className="relative bg-white/[0.015] border border-white/[0.05] rounded-2xl overflow-hidden backdrop-blur-sm" style={{ height: 'calc(100vh - 380px)', minHeight: '400px' }}>
+  1976→        <div ref={chatRef} className="absolute inset-0 overflow-y-auto p-4 space-y-4">
+  1977→          {messages.length === 0 ? (
+  1978→            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4, type: 'spring' }} className="flex flex-col items-center justify-center h-full text-center">
+  1979→              <div className="w-16 h-16 rounded-2xl bg-violet-500/[0.06] border border-violet-500/10 flex items-center justify-center mb-5 animate-float-slow">
+  1980→                <UserCircle className="h-8 w-8 text-violet-400/40" />
+  1981→              </div>
+  1982→              <h3 className="text-lg font-semibold text-white/50 mb-2">{'\xbf'}Hola, Enrique!</h3>
+  1983→              <p className="text-sm text-white/40 max-w-sm mb-6 leading-relaxed">Soy tu asesor de estilo personal. Preguntame sobre outfits, combinaciones, o cualquier duda de moda.</p>
+  1984→              <div className="flex flex-wrap gap-1.5 justify-center max-w-md">
+  1985→                {SUGGESTIONS.map((s, i) => (
+  1986→                  <button key={i} onClick={() => sendMessage(s)}
+  1987→                    className="px-3 py-2 rounded-xl border border-violet-500/10 bg-violet-500/[0.03] text-violet-300/80 text-[11px] font-medium hover:bg-violet-500/[0.08] hover:border-violet-500/20 transition-all duration-200">
+  1988→                    {s}
+  1989→                  </button>
+  1990→                ))}
+  1991→              </div>
+  1992→            </motion.div>
+  1993→          ) : (
+  1994→            <AnimatePresence mode="popLayout">
+  1995→              {messages.map((msg, i) => (
+  1996→                <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+  1997→                  <div className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+  1998→                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+  1999→                      msg.role === 'user' ? 'bg-amber-500/20 border border-amber-500/30' : 'bg-violet-500/10 border border-violet-500/15'
+  2000→                    }`}>{msg.role === 'user' ? <UserCircle className="h-4 w-4 text-amber-300" /> : <Sparkles className="h-4 w-4 text-violet-300" />}</div>
+  2001→                    <div className={`flex-1 min-w-0 rounded-2xl px-4 py-3 ${
+  2002→                      msg.role === 'user'
+  2003→                        ? 'bg-amber-500/[0.06] border border-amber-500/10 ml-10'
+  2004→                        : 'bg-white/[0.02] border border-white/[0.04]'
+  2005→                    }`}>
+  2006→                      <p className={`text-sm leading-relaxed whitespace-pre-wrap ${msg.role === 'user' ? 'text-amber-100' : 'text-white/60'}`}>{msg.content}</p>
+  2007→                      <p className={`text-[9px] mt-1 ${msg.role === 'user' ? 'text-amber-400/40 text-right' : 'text-white/15'}`}>{msg.time}</p>
+  2008→                    </div>
+  2009→                  </div>
+  2010→                </motion.div>
+  2011→              ))}
+  2012→              {loading && (
+  2013→                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3">
+  2014→                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-violet-500/10 border border-violet-500/15 flex items-center justify-center">
+  2015→                    <Sparkles className="h-4 w-4 text-violet-400 animate-pulse" />
+  2016→                  </div>
+  2017→                  <div className="flex-1 rounded-2xl px-4 py-3 bg-white/[0.02] border border-white/[0.04]">
+  2018→                    <div className="flex gap-1.5">
+  2019→                      <div className="w-2 h-2 rounded-full bg-violet-400/40 animate-bounce" style={{ animationDelay: '0ms' }} />
+  2020→                      <div className="w-2 h-2 rounded-full bg-violet-400/40 animate-bounce" style={{ animationDelay: '150ms' }} />
+  2021→                      <div className="w-2 h-2 rounded-full bg-violet-400/40 animate-bounce" style={{ animationDelay: '300ms' }} />
+  2022→                    </div>
+  2023→                  </div>
+  2024→                </motion.div>
+  2025→              )}
+  2026→            </AnimatePresence>
+  2027→          )}
+  2028→        </div>
+  2029→      </div>
+  2030→
+  2031→      {messages.length > 0 && !loading && (
+  2032→        <div className="flex flex-wrap gap-1.5">
+  2033→          {SUGGESTIONS.slice(0, 4).map((s, i) => (
+  2034→            <button key={i} onClick={() => sendMessage(s)}
+  2035→              className="px-2.5 py-1.5 rounded-lg border border-white/[0.04] bg-white/[0.02] text-white/30 text-[10px] font-medium hover:bg-violet-500/[0.06] hover:text-violet-300 hover:border-violet-500/15 transition-all duration-200">
+  2036→              {s}
+  2037→            </button>
+  2038→          ))}
+  2039→        </div>
+  2040→      )}
+  2041→
+  2042→      <div className="relative">
+  2043→        <Input
+  2044→          ref={inputRef}
+  2045→          value={input}
+  2046→          onChange={e => setInput(e.target.value)}
+  2047→          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) sendMessage(); }}
+  2048→          placeholder="Pregunta sobre tu estilo..."
+  2049→          disabled={loading}
+  2050→          className="w-full h-12 pl-12 pr-24 text-sm bg-white/[0.025] border-violet-500/15 border-white/[0.05] rounded-2xl text-white/70 placeholder:text-white/15 focus:border-violet-400/30 focus:ring-violet-500/10 transition-all duration-200"
+  2051→        />
+  2052→        <button onClick={() => sendMessage()} disabled={loading || !input.trim()}
+  2053→          className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-30 disabled:cursor-not-allowed text-white flex items-center justify-center transition-all duration-200 active:scale-95 shadow-lg shadow-violet-900/30">
+  2054→          <Send className="h-3.5 w-3.5" />
+  2055→        </button>
+  2056→      </div>
+  2057→    </div>
+  2058→  );
+  2059→}
+  2060→
+  2061→/* ============================================================
+  2062→   STATS SECTION
+  2063→   ============================================================ */
+  2064→function StatsSection({ worn, ratings, favs }: { worn?: Record<string, WornEntry>; ratings?: Record<string, number>; favs: string[] }) {
+  2065→  const [allOutfits, setAllOutfits] = useState<OutfitBasic[]>([]);
+  2066→  const [allGarments, setAllGarments] = useState<Array<Record<string, unknown>>>([]);
+  2067→  const [loading, setLoading] = useState(false);
+  2068→
+  2069→  useEffect(() => {
+  2070→    (async () => {
+  2071→      setLoading(true);
+  2072→      try {
+  2073→        const [oRes, gRes] = await Promise.all([fetch('/api/outfits?limit=130'), fetch('/api/wardrobe')]);
+  2074→        const [oData, gData] = await Promise.all([oRes.json(), gRes.json()]);
+  2075→        setAllOutfits(oData.outfits || []);
+  2076→        setAllGarments(gData.prendas || []);
+  2077→      } catch (e) { console.error(e); }
+  2078→      finally { setLoading(false); }
+  2079→    })();
+  2080→  }, []);
+  2081→
+  2082→  const stats = useMemo(() => {
+  2083→    const ocasionCount: Record<string, number> = {};
+  2084→    const estiloCount: Record<string, number> = {};
+  2085→    const momentoCount: Record<string, number> = {};
+  2086→    const climaCount: Record<string, number> = {};
+  2087→    const colorCount: Record<string, number> = {};
+  2088→    const garmentUsage: Record<string, number> = {};
+  2089→
+  2090→    allOutfits.forEach(o => {
+  2091→      o.ocasion.forEach(oc => { ocasionCount[oc] = (ocasionCount[oc] || 0) + 1; });
+  2092→      o.estilo.forEach(es => { estiloCount[es] = (estiloCount[es] || 0) + 1; });
+  2093→      o.momento.forEach(m => { momentoCount[m] = (momentoCount[m] || 0) + 1; });
+  2094→      o.clima.forEach(c => { climaCount[c] = (climaCount[c] || 0) + 1; });
+  2095→      o.paletaColores.forEach(c => { colorCount[c] = (colorCount[c] || 0) + 1; });
+  2096→      const ids = [o.prendaSuperior, o.pantalon, o.calzado, o.corbata, o.abrigo, ...(o.accesorios || [])].filter(Boolean);
+  2097→      ids.forEach(id => { garmentUsage[id] = (garmentUsage[id] || 0) + 1; });
+  2098→    });
+  2099→
+  2100→    const topColors = Object.entries(colorCount).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  2101→    const topGarments = Object.entries(garmentUsage).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  2102→    const maxOcasion = Math.max(...Object.values(ocasionCount), 1);
+  2103→    const maxEstilo = Math.max(...Object.values(estiloCount), 1);
+  2104→    const maxMomento = Math.max(...Object.values(momentoCount), 1);
+  2105→    const maxClima = Math.max(...Object.values(climaCount), 1);
+  2106→
+  2107→    // Average harmony
+  2108→    const avgHarmony = allOutfits.reduce((sum, o) => sum + getHarmonyScore(o.paletaColores).score, 0) / Math.max(allOutfits.length, 1);
+  2109→
+  2110→    return { ocasionCount, estiloCount, momentoCount, climaCount, colorCount, topColors, topGarments, maxOcasion, maxEstilo, maxMomento, maxClima, avgHarmony };
+  2111→  }, [allOutfits]);
+  2112→
+  2113→  if (loading) {
+  2114→    return <div className="space-y-4">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-40 bg-white/[0.02] rounded-2xl" />)}</div>;
+  2115→  }
+  2116→
+  2117→  const topGarmentNames = stats.topGarments.map(([id]) => {
+  2118→    const g = allGarments.find(x => x.id === id);
+  2119→    return g ? { id, nombre: g.nombre as string, emoji: g.emoji as string, colorHex: g.colorHex as string, count: stats.topGarments.find(x => x[0] === id)?.[1] || 0 } : { id, nombre: id, emoji: '?', colorHex: '#666', count: stats.topGarments.find(x => x[0] === id)?.[1] || 0 };
+  2120→  });
+  2121→
+  2122→  return (
+  2123→    <div className="space-y-6">
+  2124→      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+  2125→        <h2 className="text-lg font-bold text-white/90 flex items-center gap-2"><BarChart3 className="h-5 w-5 text-emerald-400" />Estadisticas del Guardarropa</h2>
+  2126→        <p className="text-xs text-white/25 mt-0.5">Analisis de tus 130 combinaciones y 46 prendas</p>
+  2127→      </motion.div>
+  2128→
+  2129→      {/* Summary cards */}
+  2130→      <motion.div className="grid grid-cols-2 sm:grid-cols-5 gap-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+  2131→        {[
+  2132→          { label: 'Total Outfits', value: allOutfits.length, icon: <ShirtIcon className="h-4 w-4" />, color: 'text-amber-400', bg: 'bg-amber-500/[0.06] border-amber-500/10' },
+  2133→          { label: 'Total Prendas', value: allGarments.length, icon: <Layers className="h-4 w-4" />, color: 'text-emerald-400', bg: 'bg-emerald-500/[0.06] border-emerald-500/10' },
+  2134→          { label: 'Estilos', value: Object.keys(stats.estiloCount).length, icon: <Palette className="h-4 w-4" />, color: 'text-violet-400', bg: 'bg-violet-500/[0.06] border-violet-500/10' },
+  2135→          { label: 'Colores Unicos', value: Object.keys(stats.colorCount).length, icon: <Gem className="h-4 w-4" />, color: 'text-sky-400', bg: 'bg-sky-500/[0.06] border-sky-500/10' },
+  2136→          { label: 'Armonia Promedio', value: Math.round(stats.avgHarmony), icon: <Star className="h-4 w-4" />, color: stats.avgHarmony >= 70 ? 'text-emerald-400' : 'text-amber-400', bg: stats.avgHarmony >= 70 ? 'bg-emerald-500/[0.06] border-emerald-500/10' : 'bg-amber-500/[0.06] border-amber-500/10' },
+  2137→        ].map(s => (
+  2138→          <Card key={s.label} className={`${s.bg} border rounded-xl p-4 backdrop-blur-sm`}>
+  2139→            <div className={`${s.color} mb-2`}>{s.icon}</div>
+  2140→            <div className={`text-2xl font-bold ${s.color} tabular-nums`}>{s.value}</div>
+  2141→            <div className="text-[10px] text-white/30 font-medium mt-0.5">{s.label}</div>
+  2142→          </Card>
+  2143→        ))}
+  2144→      </motion.div>
+  2145→
+  2146→      {/* Style DNA Radar */}
+  2147→      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+  2148→        <StyleDNARadar
+  2149→          favs={favs}
+  2150→          worn={worn}
+  2151→          ratings={ratings}
+  2152→          allOutfits={allOutfits}
+  2153→        />
+  2154→      </motion.div>
+  2155→
+  2156→      {/* Charts */}
+  2157→      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+  2158→        {[
+  2159→          { title: 'Por Ocasion', data: stats.ocasionCount, max: stats.maxOcasion, icon: <MapPin className="h-3.5 w-3.5 text-emerald-400" />, gradient: 'from-emerald-500 to-emerald-400', labelKey: 'ocasion' as const },
+  2160→          { title: 'Por Estilo', data: stats.estiloCount, max: stats.maxEstilo, icon: <Crown className="h-3.5 w-3.5 text-violet-400" />, gradient: 'from-violet-500 to-purple-400', labelKey: 'estilo' as const },
+  2161→          { title: 'Por Momento', data: stats.momentoCount, max: stats.maxMomento, icon: <Clock className="h-3.5 w-3.5 text-sky-400" />, gradient: 'from-sky-500 to-cyan-400', labelKey: 'momento' as const },
+  2162→          { title: 'Por Clima', data: stats.climaCount, max: stats.maxClima, icon: <Flame className="h-3.5 w-3.5 text-orange-400" />, gradient: 'from-orange-500 to-amber-400', labelKey: 'clima' as const },
+  2163→        ].map((chart, i) => (
+  2164→          <motion.div key={chart.title} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.1 }}>
+  2165→            <Card className="bg-white/[0.015] border-white/[0.04] rounded-2xl p-5 backdrop-blur-sm">
+  2166→              <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">{chart.icon}{chart.title}</h3>
+  2167→              <div className="space-y-3">
+  2168→                {Object.entries(chart.data).sort((a, b) => b[1] - a[1]).map(([key, count]) => (
+  2169→                  <div key={key}>
+  2170→                    <div className="flex items-center justify-between mb-1">
+  2171→                      <span className="text-[11px] text-white/50 font-medium">{LABELS[chart.labelKey][key as keyof typeof LABELS[typeof chart.labelKey]]}</span>
+  2172→                      <span className="text-[10px] text-white/25 font-mono tabular-nums">{count}</span>
+  2173→                    </div>
+  2174→                    <div className="h-2 rounded-full bg-white/[0.03] overflow-hidden">
+  2175→                      <motion.div initial={{ width: 0 }} animate={{ width: `${(count / chart.max) * 100}%` }} transition={{ duration: 0.8, delay: 0.3 + i * 0.1 }} className={`h-full rounded-full bg-gradient-to-r ${chart.gradient}`} />
+  2176→                    </div>
+  2177→                  </div>
+  2178→                ))}
+  2179→              </div>
+  2180→            </Card>
+  2181→          </motion.div>
+  2182→        ))}
+  2183→      </div>
+  2184→
+  2185→      {/* Top Colors */}
+  2186→      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
+  2187→        <Card className="bg-white/[0.015] border-white/[0.04] rounded-2xl p-5 backdrop-blur-sm">
+  2188→          <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2"><Star className="h-3.5 w-3.5 text-amber-400" />Colores Mas Usados</h3>
+  2189→          <div className="space-y-2.5">
+  2190→            {stats.topColors.map(([color, count]) => (
+  2191→              <div key={color} className="flex items-center gap-3">
+  2192→                <div className="w-6 h-6 rounded-lg border border-white/[0.06] flex-shrink-0" style={{ backgroundColor: color }} />
+  2193→                <div className="flex-1 min-w-0">
+  2194→                  <div className="h-1.5 rounded-full bg-white/[0.03] overflow-hidden">
+  2195→                    <motion.div initial={{ width: 0 }} animate={{ width: `${(count / stats.topColors[0][1]) * 100}%` }} transition={{ duration: 0.6 }} className="h-full rounded-full" style={{ backgroundColor: color }} />
+  2196→                  </div>
+  2197→                </div>
+  2198→                <span className="text-[10px] text-white/25 font-mono w-6 text-right tabular-nums">{count}</span>
+  2199→              </div>
+  2200→            ))}
+  2201→          </div>
+  2202→        </Card>
+  2203→      </motion.div>
+  2204→
+  2205→      {/* Top Garments */}
+  2206→      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
+  2207→        <Card className="bg-white/[0.015] border-white/[0.04] rounded-2xl p-5 backdrop-blur-sm">
+  2208→          <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2"><TrendingUp className="h-3.5 w-3.5 text-emerald-400" />Prendas Mas Versatiles</h3>
+  2209→          <div className="space-y-2">
+  2210→            {topGarmentNames.map((g, i) => (
+  2211→              <div key={g.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.015] border border-white/[0.03] hover:bg-white/[0.025] transition-colors">
+  2212→                <span className={`text-[10px] font-black w-5 text-center tabular-nums ${i === 0 ? 'text-amber-400' : 'text-white/15'}`}>#{i + 1}</span>
+  2213→                <span className="text-lg">{g.emoji}</span>
+  2214→                <div className="flex-1 min-w-0">
+  2215→                  <p className="text-[11px] text-white/60 font-medium truncate">{g.nombre}</p>
+  2216→                </div>
+  2217→                <div className="w-4 h-4 rounded-full border border-white/[0.06]" style={{ backgroundColor: g.colorHex }} />
+  2218→                <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/[0.03]">
+  2219→                  <Zap className="h-2.5 w-2.5 text-amber-400" />
+  2220→                  <span className="text-[10px] text-white/40 font-bold tabular-nums">{g.count}</span>
+  2221→                </div>
+  2222→              </div>
+  2223→            ))}
+  2224→          </div>
+  2225→        </Card>
+  2226→      </motion.div>
+  2227→
+  2228→      {/* Export/Import */}
+  2229→      <div className="mt-8 pt-6 border-t border-white/[0.04]">
+  2230→        <h3 className="text-sm font-semibold text-white/70 flex items-center gap-2 mb-4"><Lock className="h-4 w-4 text-amber-400" />Datos y Copia de Seguridad</h3>
+  2231→        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+  2232→          <div className="data-card surface-1 rounded-2xl p-5 space-y-3 cursor-pointer hover-lift" onClick={() => {
+  2233→            const data = { favorites: JSON.parse(localStorage.getItem(FAVS_KEY) || '[]'), history: JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'), worn: JSON.parse(localStorage.getItem(WORN_KEY) || '{}'), ratings: JSON.parse(localStorage.getItem(RATINGS_KEY) || '{}'), exportDate: new Date().toISOString() };
+  2234→            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  2235→            const url = URL.createObjectURL(blob);
+  2236→            const a = document.createElement('a'); a.href = url; a.download = `stylevault-backup-${new Date().toISOString().split('T')[0]}.json`; a.click(); URL.revokeObjectURL(url);
+  2237→            toast.success('Datos exportados correctamente');
+  2238→          }}>
+  2239→            <div className="flex items-center gap-3"><div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center"><Download className="h-5 w-5 text-amber-400" /></div><div><p className="text-sm font-medium text-white/75">Exportar Datos</p><p className="text-[10px] text-white/25 mt-0.5">Descargar copia de seguridad JSON</p></div></div>
+  2240→          </div>
+  2241→          <div className="data-card surface-1 rounded-2xl p-5 space-y-3 relative">
+  2242→            <input type="file" accept=".json" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => {
+  2243→              const file = e.target.files?.[0];
+  2244→              if (!file) return;
+  2245→              const reader = new FileReader();
+  2246→              reader.onload = (ev) => {
+  2247→                try {
+  2248→                  const data = JSON.parse(ev.target?.result as string);
+  2249→                  if (data.favorites) localStorage.setItem(FAVS_KEY, JSON.stringify(data.favorites));
+  2250→                  if (data.history) localStorage.setItem(HISTORY_KEY, JSON.stringify(data.history));
+  2251→                  if (data.worn) localStorage.setItem(WORN_KEY, JSON.stringify(data.worn));
+  2252→                  if (data.ratings) localStorage.setItem(RATINGS_KEY, JSON.stringify(data.ratings));
+  2253→                  toast.success('Datos importados. Recarga la pagina para ver los cambios.');
+  2254→                } catch { toast.error('Archivo invalido'); }
+  2255→              };
+  2256→              reader.readAsText(file);
+  2257→            }} />
+  2258→            <div className="flex items-center gap-3"><div className="h-10 w-10 rounded-xl bg-sky-500/10 flex items-center justify-center"><Upload className="h-5 w-5 text-sky-400" /></div><div><p className="text-sm font-medium text-white/75">Importar Datos</p><p className="text-[10px] text-white/25 mt-0.5">Restaurar desde archivo JSON</p></div></div>
+  2259→          </div>
+  2260→        </div>
+  2261→      </div>
+  2262→    </div>
+  2263→  );
+  2264→}
+  2265→
+  2266→/* ============================================================
+  2267→   STYLE DNA RADAR CHART
+  2268→   ============================================================ */
+  2269→function StyleDNARadar({ favs, worn, ratings, allOutfits }: { favs: string[]; worn?: Record<string, WornEntry>; ratings?: Record<string, number>; allOutfits: OutfitBasic[] }) {
+  2270→  const estilos = ['noir', 'old_money', 'rockero', 'corporate'] as const;
+  2271→  const estiloLabels: Record<string, string> = { noir: 'Noir', old_money: 'Old Money', rockero: 'Rockero', corporate: 'Corporate' };
+  2272→  const estiloColors: Record<string, string> = { noir: '#9ca3af', old_money: '#f59e0b', rockero: '#ef4444', corporate: '#38bdf8' };
+  2273→
+  2274→  const scores = useMemo(() => {
+  2275→    const counts: Record<string, number> = { noir: 0, old_money: 0, rockero: 0, corporate: 0 };
+  2276→    const weightedCounts: Record<string, number> = { noir: 0, old_money: 0, rockero: 0, corporate: 0 };
+  2277→
+  2278→    allOutfits.forEach(o => {
+  2279→      o.estilo.forEach(e => { if (counts[e] !== undefined) counts[e]++; });
+  2280→    });
+  2281→
+  2282→    // Weight: favorites = 5pts, worn = 3pts, rated = 4pts
+  2283→    favs.forEach(id => {
+  2284→      const o = allOutfits.find(x => x.id === id);
+  2285→      if (o) o.estilo.forEach(e => { if (weightedCounts[e] !== undefined) weightedCounts[e] += 5; });
+  2286→    });
+  2287→    Object.entries(worn || {}).forEach(([id, entry]) => {
+  2288→      const o = allOutfits.find(x => x.id === id);
+  2289→      if (o) o.estilo.forEach(e => { if (weightedCounts[e] !== undefined) weightedCounts[e] += 3 * entry.count; });
+  2290→    });
+  2291→    Object.entries(ratings || {}).forEach(([id, stars]) => {
+  2292→      const o = allOutfits.find(x => x.id === id);
+  2293→      if (o) o.estilo.forEach(e => { if (weightedCounts[e] !== undefined) weightedCounts[e] += 4 * (stars / 5); });
+  2294→    });
+  2295→
+  2296→    // If no interactions, use base distribution
+  2297→    const hasInteractions = favs.length > 0 || Object.keys(worn).length > 0 || Object.keys(ratings).length > 0;
+  2298→    if (!hasInteractions) {
+  2299→      const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  2300→      return estilos.map(e => total > 0 ? (counts[e] / total) * 100 : 25);
+  2301→    }
+  2302→
+  2303→    const total = Object.values(weightedCounts).reduce((a, b) => a + b, 0);
+  2304→    if (total === 0) return estilos.map(() => 25);
+  2305→    return estilos.map(e => (weightedCounts[e] / total) * 100);
+  2306→  }, [favs, worn, ratings, allOutfits]);
+  2307→
+  2308→  const maxScore = Math.max(...scores, 1);
+  2309→  const center = 50;
+  2310→  const radius = 38;
+  2311→  const n = estilos.length;
+  2312→  const angleStep = (2 * Math.PI) / n;
+  2313→
+  2314→  const getPoint = (i: number, value: number) => {
+  2315→    const angle = angleStep * i - Math.PI / 2;
+  2316→    const r = (value / 100) * radius;
+  2317→    return { x: center + r * Math.cos(angle), y: center + r * Math.sin(angle) };
+  2318→  };
+  2319→
+  2320→  const dataPoints = scores.map((s, i) => getPoint(i, s));
+  2321→  const dataPath = dataPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ') + ' Z';
+  2322→
+  2323→  const dominantIndex = scores.indexOf(Math.max(...scores));
+  2324→  const dominant = estilos[dominantIndex];
+  2325→
+  2326→  return (
+  2327→    <Card className="bg-white/[0.015] border-white/[0.04] rounded-2xl p-5 backdrop-blur-sm">
+  2328→      <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2"><Gem className="h-3.5 w-3.5 text-violet-400" />Style DNA</h3>
+  2329→      <div className="flex flex-col sm:flex-row items-center gap-6">
+  2330→        <div className="style-dna-chart relative flex-shrink-0 py-3">
+  2331→          <svg viewBox="0 0 100 100" className="w-40 h-40" overflow="visible">
+  2332→            {/* Grid lines */}
+  2333→            {[25, 50, 75, 100].map(level => {
+  2334→              const pts = estilos.map((_, i) => getPoint(i, level));
+  2335→              const path = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ') + ' Z';
+  2336→              return <path key={level} d={path} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="0.3" />;
+  2337→            })}
+  2338→            {/* Axis lines */}
+  2339→            {estilos.map((_, i) => {
+  2340→              const p = getPoint(i, 100);
+  2341→              return <line key={i} x1={center} y1={center} x2={p.x} y2={p.y} stroke="rgba(255,255,255,0.03)" strokeWidth="0.3" />;
+  2342→            })}
+  2343→            {/* Data polygon */}
+  2344→            <motion.path
+  2345→              d={dataPath}
+  2346→              fill="rgba(212,168,67,0.15)"
+  2347→              stroke="rgba(212,168,67,0.6)"
+  2348→              strokeWidth="2"
+  2349→              initial={{ opacity: 0, scale: 0.5 }}
+  2350→              animate={{ opacity: 1, scale: 1 }}
+  2351→              transition={{ duration: 0.8, type: 'spring' }}
+  2352→              style={{ transformOrigin: `${center}px ${center}px` }}
+  2353→            />
+  2354→            {/* Data points */}
+  2355→            {dataPoints.map((p, i) => (
+  2356→              <motion.circle
+  2357→                key={i} cx={p.x} cy={p.y} r="4"
+  2358→                fill={estiloColors[estilos[i]]}
+  2359→                fill-opacity="0.8"
+  2360→                stroke="#08080a" strokeWidth="0.8"
+  2361→                initial={{ r: 0 }} animate={{ r: 4 }} transition={{ delay: 0.3 + i * 0.1 }}
+  2362→              />
+  2363→            ))}
+  2364→            {/* Labels */}
+  2365→            {estilos.map((e, i) => {
+  2366→              const angle = angleStep * i - Math.PI / 2;
+  2367→              const lr = radius + 10;
+  2368→              const lx = center + lr * Math.cos(angle);
+  2369→              const ly = center + lr * Math.sin(angle);
+  2370→              return (
+  2371→                <text key={e} x={lx} y={ly} textAnchor="middle" dominantBaseline="middle" className="text-[5px] font-semibold" fill={scores[i] === maxScore ? estiloColors[e] : 'rgba(255,255,255,0.25)'}>
+  2372→                  {estiloLabels[e]}
+  2373→                </text>
+  2374→              );
+  2375→            })}
+  2376→          </svg>
+  2377→        </div>
+  2378→        <div className="flex-1 space-y-3">
+  2379→          <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/[0.04] bg-white/[0.015]">
+  2380→            <span className="text-lg">{dominant === 'noir' ? '🖤' : dominant === 'old_money' ? '👑' : dominant === 'rockero' ? '🎸' : '💼'}</span>
+  2381→            <div className="flex-1 min-w-0">
+  2382→              <p className="text-[11px] font-semibold text-white/70">Estilo Dominante</p>
+  2383→              <p className="text-[10px] font-bold" style={{ color: estiloColors[dominant] }}>{estiloLabels[dominant]}</p>
+  2384→            </div>
+  2385→            <span className="text-lg font-bold tabular-nums" style={{ color: estiloColors[dominant] }}>{Math.round(scores[dominantIndex])}%</span>
+  2386→          </div>
+  2387→          <div className="space-y-1.5">
+  2388→            {estilos.map((e, i) => (
+  2389→              <div key={e} className="flex items-center gap-2">
+  2390→                <span className="text-[10px] w-16 text-right font-medium" style={{ color: estiloColors[e] }}>{estiloLabels[e]}</span>
+  2391→                <div className="flex-1 h-1.5 rounded-full bg-white/[0.03] overflow-hidden">
+  2392→                  <motion.div
+  2393→                    initial={{ width: 0 }}
+  2394→                    animate={{ width: `${scores[i]}%` }}
+  2395→                    transition={{ duration: 0.6, delay: 0.4 + i * 0.1 }}
+  2396→                    className="h-full rounded-full"
+  2397→                    style={{ backgroundColor: estiloColors[e], opacity: 0.7 }}
+  2398→                  />
+  2399→                </div>
+  2400→                <span className="text-[9px] text-white/20 font-mono w-7 tabular-nums text-right">{Math.round(scores[i])}%</span>
+  2401→              </div>
+  2402→            ))}
+  2403→          </div>
+  2404→          {favs.length === 0 && Object.keys(worn).length === 0 && (
+  2405→            <p className="text-[9px] text-white/15 italic">Usa favoritos, calificaciones y registro de uso para personalizar tu perfil de estilo</p>
+  2406→          )}
+  2407→        </div>
+  2408→      </div>
+  2409→    </Card>
+  2410→  );
+  2411→}
+  2412→
+  2413→/* ============================================================
+  2414→   COLLECTIONS SECTION
+  2415→   ============================================================ */
+  2416→function CollectionsSection({ favs, isFav, onToggleFav, onViewDetail }: { favs: string[]; isFav: (id: string) => boolean; onToggleFav: (id: string) => void; onViewDetail: (s: Suggestion) => void }) {
+  2417→  const [collections, setCollections] = useState<CollectionBasic[]>([]);
+  2418→  const [selectedCollection, setSelectedCollection] = useState<string | null>(null);
+  2419→  const [collectionOutfits, setCollectionOutfits] = useState<OutfitBasic[]>([]);
+  2420→  const [loading, setLoading] = useState(false);
+  2421→  const [detailLoading, setDetailLoading] = useState<string | null>(null);
+  2422→
+  2423→  useEffect(() => {
+  2424→    (async () => {
+  2425→      try {
+  2426→        const res = await fetch('/api/collections');
+  2427→        const data = await res.json();
+  2428→        if (data.success) setCollections(data.collections || []);
+  2429→      } catch (e) { console.error(e); }
+  2430→    })();
+  2431→  }, []);
+  2432→
+  2433→  const openCollection = useCallback(async (id: string) => {
+  2434→    if (selectedCollection === id) { setSelectedCollection(null); setCollectionOutfits([]); return; }
+  2435→    setLoading(true);
+  2436→    setSelectedCollection(id);
+  2437→    try {
+  2438→      const res = await fetch(`/api/collections?collection=${id}`);
+  2439→      const data = await res.json();
+  2440→      if (data.success) setCollectionOutfits(data.collection?.outfits || []);
+  2441→    } catch { toast.error('Error cargando coleccion'); }
+  2442→    finally { setLoading(false); }
+  2443→  }, [selectedCollection]);
+  2444→
+  2445→  const viewOutfit = useCallback(async (outfit: OutfitBasic) => {
+  2446→    setDetailLoading(outfit.id);
+  2447→    try {
+  2448→      const res = await fetch(`/api/outfits/${outfit.id}`);
+  2449→      const data = await res.json();
+  2450→      if (data.success) {
+  2451→        onViewDetail({ outfit: data.outfit, garments: data.garments, score: 0, matchDetails: { ocasion: true, momento: true, clima: true, estilo: true } });
+  2452→      }
+  2453→    } catch {}
+  2454→    finally { setDetailLoading(null); }
+  2455→  }, [onViewDetail]);
+  2456→
+  2457→  if (collections.length === 0) {
+  2458→    return <div className="space-y-4">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-36 bg-white/[0.015] rounded-2xl" />)}</div>;
+  2459→  }
+  2460→
+  2461→  return (
+  2462→    <div className="space-y-5">
+  2463→      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+  2464→        <h2 className="text-lg font-bold text-white/90 flex items-center gap-2"><FolderOpen className="h-5 w-5 text-sky-400" />Colecciones Curadas</h2>
+  2465→        <p className="text-xs text-white/25 mt-0.5">Outfits agrupados por tema, mood y estetica</p>
+  2466→      </motion.div>
+  2467→
+  2468→      <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3" variants={stagger} initial="initial" animate="animate">
+  2469→        {collections.map(col => (
+  2470→          <motion.div key={col.id} variants={fadeUp}>
+  2471→            <button
+  2472→              onClick={() => openCollection(col.id)}
+  2473→              className={`w-full text-left collection-card rounded-2xl p-4 border transition-all duration-300 hover-lift ${
+  2474→                selectedCollection === col.id
+  2475→                  ? 'bg-white/[0.04] border-white/[0.1] shadow-lg shadow-black/20'
+  2476→                  : 'bg-white/[0.015] border-white/[0.04] hover:bg-white/[0.03] hover:border-white/[0.07]'
+  2477→              }`}
+  2478→              style={{ '--collection-color': col.color } as React.CSSProperties}
+  2479→            >
+  2480→              <div className="flex items-start justify-between mb-3">
+  2481→                <span className="text-2xl">{col.emoji}</span>
+  2482→                <span className="text-[10px] font-bold tabular-nums px-2 py-0.5 rounded-full border border-white/[0.06] text-white/25">{col.outfitCount}</span>
+  2483→              </div>
+  2484→              <h3 className="text-sm font-semibold text-white/80 mb-1">{col.nombre}</h3>
+  2485→              <p className="text-[10px] text-white/25 line-clamp-2 leading-relaxed">{col.descripcion}</p>
+  2486→              <div className="mt-3 h-1 rounded-full overflow-hidden bg-white/[0.03]">
+  2487→                <div className="h-full rounded-full" style={{ backgroundColor: col.color, opacity: 0.6, width: `${Math.min((col.outfitCount / 80) * 100, 100)}%` }} />
+  2488→              </div>
+  2489→            </button>
+  2490→          </motion.div>
+  2491→        ))}
+  2492→      </motion.div>
+  2493→
+  2494→      {selectedCollection && (
+  2495→        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+  2496→          <div className="flex items-center justify-between mb-4">
+  2497→            <div className="flex items-center gap-3">
+  2498→              <button onClick={() => { setSelectedCollection(null); setCollectionOutfits([]); }} className="h-8 w-8 rounded-lg flex items-center justify-center text-white/25 hover:text-white/60 hover:bg-white/[0.04] transition-all">
+  2499→                <ChevronDown className="h-4 w-4 rotate-90" />
+  2500→              </button>
+  2501→              <div>
+  2502→                <h3 className="text-sm font-semibold text-white/80">{collections.find(c => c.id === selectedCollection)?.emoji} {collections.find(c => c.id === selectedCollection)?.nombre}</h3>
+  2503→                <p className="text-[10px] text-white/25">{collectionOutfits.length} outfits en esta coleccion</p>
+  2504→              </div>
+  2505→            </div>
+  2506→          </div>
+  2507→          {loading ? (
+  2508→            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 bg-white/[0.015] rounded-xl" />)}</div>
+  2509→          ) : (
+  2510→            <motion.div className="grid grid-cols-1 md:grid-cols-2 gap-3" variants={stagger} initial="initial" animate="animate">
+  2511→              {collectionOutfits.map(outfit => (
+  2512→                <motion.div key={outfit.id} variants={fadeUp}>
+  2513→                  <Card className="weekly-card-shine bg-white/[0.015] border-white/[0.04] rounded-xl p-4 hover:bg-white/[0.03] transition-all duration-300 group cursor-pointer"
+  2514→                    onClick={() => viewOutfit(outfit)}>
+  2515→                    <div className="flex items-start justify-between gap-3">
+  2516→                      <div className="flex-1 min-w-0">
+  2517→                        <h4 className="text-xs font-semibold text-white/70 group-hover:text-amber-200 transition-colors truncate">{outfit.nombre}</h4>
+  2518→                        <p className="text-[10px] text-white/20 line-clamp-1 mt-0.5">{outfit.descripcion}</p>
+  2519→                        <div className="flex items-center gap-1.5 mt-2">
+  2520→                          <div className="flex -space-x-1">{outfit.paletaColores.slice(0, 4).map((c, i) => <div key={i} className="w-3.5 h-3.5 rounded-full border border-[#08080a]" style={{ backgroundColor: c }} />)}</div>
+  2521→                          {isFav(outfit.id) && <Heart className="h-3 w-3 text-rose-400 fill-rose-400 ml-1" />}
+  2522→                        </div>
+  2523→                      </div>
+  2524→                      {detailLoading === outfit.id ? <RefreshCw className="h-4 w-4 text-white/20 animate-spin flex-shrink-0" /> : <Eye className="h-4 w-4 text-white/15 group-hover:text-amber-400 transition-colors flex-shrink-0" />}
+  2525→                    </div>
+  2526→                  </Card>
+  2527→                </motion.div>
+  2528→              ))}
+  2529→            </motion.div>
+  2530→          )}
+  2531→        </motion.div>
+  2532→      )}
+  2533→    </div>
+  2534→  );
+  2535→}
+  2536→
