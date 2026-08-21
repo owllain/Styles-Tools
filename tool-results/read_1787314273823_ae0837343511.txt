@@ -1,0 +1,1559 @@
+    50→  });
+    51→  const toggle = useCallback((id: string) => {
+    52→    setFavs(prev => {
+    53→      const next = prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id];
+    54→      localStorage.setItem(FAVS_KEY, JSON.stringify(next));
+    55→      return next;
+    56→    });
+    57→  }, []);
+    58→  const isFav = useCallback((id: string) => favs.includes(id), [favs]);
+    59→  return { favs, toggle, isFav };
+    60→}
+    61→
+    62→function useHistory() {
+    63→  const [history, setHistory] = useState<string[]>(() => {
+    64→    if (typeof window === 'undefined') return [];
+    65→    try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
+    66→  });
+    67→  const add = useCallback((id: string) => {
+    68→    setHistory(prev => {
+    69→      const next = [id, ...prev.filter(x => x !== id)].slice(0, MAX_HISTORY);
+    70→      localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+    71→      return next;
+    72→    });
+    73→  }, []);
+    74→  return { history, add };
+    75→}
+    76→
+    77→function getTimeGreeting() {
+    78→  const h = new Date().getHours();
+    79→  if (h < 6) return { text: 'Buenas noches', emoji: '\u{1F319}', sub: 'Aun es temprano para planificar' };
+    80→  if (h < 12) return { text: 'Buenos dias', emoji: '\u{2600}', sub: 'Comienza el dia con estilo' };
+    81→  if (h < 18) return { text: 'Buenas tardes', emoji: '\u{1F324}', sub: 'Tu guardarropa te espera' };
+    82→  return { text: 'Buenas noches', emoji: '\u{1F303}', sub: 'Planea tu proximo look' };
+    83→}
+    84→
+    85→function getHarmonyScore(colors: string[]): { score: number; label: string; description: string } {
+    86→  if (colors.length < 2) return { score: 50, label: 'Neutro', description: 'Datos insuficientes' };
+    87→  
+    88→  const hexToHSL = (hex: string) => {
+    89→    let r = parseInt(hex.slice(1, 3), 16) / 255;
+    90→    let g = parseInt(hex.slice(3, 5), 16) / 255;
+    91→    let b = parseInt(hex.slice(5, 7), 16) / 255;
+    92→    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    93→    let h = 0, s = 0, l = (max + min) / 2;
+    94→    if (max !== min) {
+    95→      const d = max - min;
+    96→      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    97→      if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+    98→      else if (max === g) h = ((b - r) / d + 2) / 6;
+    99→      else h = ((r - g) / d + 4) / 6;
+   100→    }
+   101→    return { h: h * 360, s: s * 100, l: l * 100 };
+   102→  };
+   103→
+   104→  const hueDiff = (a: number, b: number) => Math.abs(((a - b + 540) % 360) - 180);
+   105→
+   106→  const hslColors = colors.map(hexToHSL);
+   107→  const neutrals = hslColors.filter(c => c.s < 15);
+   108→  const chromatics = hslColors.filter(c => c.s >= 15);
+   109→
+   110→  let score = 60; // base
+   111→
+   112→  // Bonus for neutrals (they go with everything)
+   113→  score += Math.min(neutrals.length * 5, 10);
+   114→
+   115→  // Chromatic harmony
+   116→  if (chromatics.length >= 2) {
+   117→    const maxHueDiff = Math.max(...chromatics.flatMap((c, i) => chromatics.slice(i + 1).map(d => hueDiff(c.h, d.h))));
+   118→    const avgSat = chromatics.reduce((sum, c) => sum + c.s, 0) / chromatics.length;
+   119→    const avgLight = chromatics.reduce((sum, c) => sum + c.l, 0) / chromatics.length;
+   120→
+   121→    if (maxHueDiff < 30 || maxHueDiff > 330) score += 15; // Analogous
+   122→    else if (Math.abs(maxHueDiff - 180) < 30) score += 12; // Complementary
+   123→    else if (maxHueDiff > 90 && maxHueDiff < 270) score += 8; // Triadic area
+   124→    else score += 5;
+   125→
+   126→    if (avgSat < 40) score += 5; // Muted palette bonus
+   127→    if (avgLight > 20 && avgLight < 80) score += 5; // Good lightness range
+   128→  }
+   129→
+   130→  // Monochrome bonus (very intentional)
+   131→  const uniqueHues = new Set(hslColors.filter(c => c.s >= 15).map(c => Math.round(c.h / 15) * 15));
+   132→  if (uniqueHues.size <= 2 && hslColors.length >= 3) score += 8;
+   133→
+   134→  score = Math.min(Math.max(score, 30), 98);
+   135→
+   136→  if (score >= 85) return { score, label: 'Armonia Excelente', description: 'Paleta cohesiva y sofisticada' };
+   137→  if (score >= 70) return { score, label: 'Buena Armonia', description: 'Combinacion equilibrada y atractiva' };
+   138→  if (score >= 55) return { score, label: 'Armonia Moderada', description: 'Funcional con potencial de mejora' };
+   139→  return { score, label: 'Contraste Alto', description: 'Combinacion atrevida y audaz' };
+   140→}
+   141→
+   142→function copyOutfitToClipboard(outfit: OutfitBasic, garments: GarmentDetail[]) {
+   143→  const lines = [
+   144→    `\u{1F3AD} ${outfit.nombre}`,
+   145→    `${'─'.repeat(30)}`,
+   146→    outfit.descripcion,
+   147→    '',
+   148→    '\u{1F454} PRENDAS:',
+   149→    ...garments.map(g => `  ${g.emoji} ${g.nombre} (${g.color})`),
+   150→    '',
+   151→    `\u{1F3A8} Paleta: ${outfit.paletaColores.join(' ')}`,
+   152→    `\u{1F4CD} ${outfit.ocasion.map(o => LABELS.ocasion[o as keyof typeof LABELS.ocasion]).join(', ')}`,
+   153→    `\u{23F0} ${outfit.momento.map(m => LABELS.momento[m as keyof typeof LABELS.momento]).join(', ')}`,
+   154→    `\u{1F321} ${outfit.clima.map(c => LABELS.clima[c as keyof typeof LABELS.clima]).join(', ')}`,
+   155→    `\u{2728} ${outfit.estilo.map(e => LABELS.estilo[e as keyof typeof LABELS.estilo]).join(', ')}`,
+   156→    '',
+   157→    '— StyleVault para Enrique Cascante',
+   158→  ];
+   159→  navigator.clipboard.writeText(lines.join('\n')).then(() => {
+   160→    toast.success('Outfit copiado al portapapeles');
+   161→  }).catch(() => {
+   162→    toast.error('No se pudo copiar');
+   163→  });
+   164→}
+   165→
+   166→const PRESETS = [
+   167→  { name: 'Lunes de Oficina', emoji: '\u{1F4BC}', ocasion: 'oficina' as Ocasion, momento: 'dia' as Momento, clima: 'templado' as Clima, estilo: 'corporate' as Estilo },
+   168→  { name: 'Viernes Casual', emoji: '\u{2615}', ocasion: 'oficina_casual' as Ocasion, momento: 'tarde' as Momento, clima: 'templado' as Clima, estilo: 'old_money' as Estilo },
+   169→  { name: 'Concierto de Metal', emoji: '\u{1F3B5}', ocasion: 'salida' as Ocasion, momento: 'noche' as Momento, clima: 'frio' as Clima, estilo: 'rockero' as Estilo },
+   170→  { name: 'Cena Elegante', emoji: '\u{1F37D}', ocasion: 'after_office' as Ocasion, momento: 'noche' as Momento, clima: 'frio' as Clima, estilo: 'noir' as Estilo },
+   171→  { name: 'Sabado Relajado', emoji: '\u{26F8}', ocasion: 'fin_de_semana' as Ocasion, momento: 'dia' as Momento, clima: 'calor' as Clima, estilo: 'old_money' as Estilo },
+   172→  { name: 'Noche de Rock', emoji: '\u{26A1}', ocasion: 'salida' as Ocasion, momento: 'noche' as Momento, clima: 'frio' as Clima, estilo: 'rockero' as Estilo },
+   173→];
+   174→
+   175→const OCASION_OPTS: { value: Ocasion; icon: React.ReactNode; desc: string; accent: string }[] = [
+   176→  { value: 'oficina', icon: <Briefcase className="h-4 w-4" />, desc: 'Reunion, cliente, gerencia', accent: 'from-sky-500/20 to-sky-600/5' },
+   177→  { value: 'oficina_casual', icon: <Shirt className="h-4 w-4" />, desc: 'Viernes, home office', accent: 'from-emerald-500/20 to-emerald-600/5' },
+   178→  { value: 'salida', icon: <Sparkles className="h-4 w-4" />, desc: 'Concierto, bar, fiesta', accent: 'from-fuchsia-500/20 to-fuchsia-600/5' },
+   179→  { value: 'after_office', icon: <Wine className="h-4 w-4" />, desc: 'Cena, copas, transicion', accent: 'from-purple-500/20 to-purple-600/5' },
+   180→  { value: 'fin_de_semana', icon: <Sun className="h-4 w-4" />, desc: 'Sabado, domingo, relax', accent: 'from-amber-500/20 to-amber-600/5' },
+   181→];
+   182→const MOMENTO_OPTS: { value: Momento; icon: React.ReactNode }[] = [
+   183→  { value: 'dia', icon: <Sun className="h-4 w-4" /> },
+   184→  { value: 'tarde', icon: <CloudSun className="h-4 w-4" /> },
+   185→  { value: 'noche', icon: <Moon className="h-4 w-4" /> },
+   186→];
+   187→const CLIMA_OPTS: { value: Clima; icon: React.ReactNode }[] = [
+   188→  { value: 'frio', icon: <Snowflake className="h-4 w-4" /> },
+   189→  { value: 'templado', icon: <CloudSun className="h-4 w-4" /> },
+   190→  { value: 'calor', icon: <Flame className="h-4 w-4" /> },
+   191→];
+   192→const ESTILO_OPTS: { value: Estilo; icon: React.ReactNode; label: string; color: string }[] = [
+   193→  { value: 'noir', icon: <Gem className="h-3.5 w-3.5" />, label: 'Noir Sophistique', color: 'text-gray-300' },
+   194→  { value: 'old_money', icon: <Crown className="h-3.5 w-3.5" />, label: 'Old Money', color: 'text-amber-300' },
+   195→  { value: 'rockero', icon: <Music className="h-3.5 w-3.5" />, label: 'Rockero / Metal', color: 'text-red-400' },
+   196→  { value: 'corporate', icon: <Award className="h-3.5 w-3.5" />, label: 'Corporate Tech', color: 'text-sky-400' },
+   197→];
+   198→const CATEGORIES = [
+   199→  { id: null, label: 'Todas', emoji: '\u{1F454}' },
+   200→  { id: 'camisas_formales', label: 'Formales', emoji: '\u{1F454}' },
+   201→  { id: 'corbatas', label: 'Corbatas', emoji: '\u{1FA9E}' },
+   202→  { id: 'pantalones', label: 'Pantalones', emoji: '\u{1F456}' },
+   203→  { id: 'abrigos', label: 'Abrigos', emoji: '\u{1F9E5}' },
+   204→  { id: 'cuellos_tortuga', label: 'Tortuga', emoji: '\u{1F455}' },
+   205→  { id: 'henley_casual', label: 'Henley', emoji: '\u{1F4E5}' },
+   206→  { id: 'calzado', label: 'Calzado', emoji: '\u{1F97E}' },
+   207→  { id: 'accesorios', label: 'Accesorios', emoji: '\u{1F517}' },
+   208→];
+   209→
+   210→function getScoreColor(score: number) {
+   211→  if (score >= 80) return 'text-emerald-400';
+   212→  if (score >= 60) return 'text-amber-400';
+   213→  if (score >= 40) return 'text-orange-400';
+   214→  return 'text-white/40';
+   215→}
+   216→function getScoreBg(score: number) {
+   217→  if (score >= 80) return 'bg-emerald-500/10 border-emerald-500/20';
+   218→  if (score >= 60) return 'bg-amber-500/10 border-amber-500/20';
+   219→  if (score >= 40) return 'bg-orange-500/10 border-orange-500/20';
+   220→  return 'bg-white/[0.04] border-white/[0.08]';
+   221→}
+   222→function getScoreBarColor(score: number) {
+   223→  if (score >= 80) return 'bg-emerald-500';
+   224→  if (score >= 60) return 'bg-amber-500';
+   225→  if (score >= 40) return 'bg-orange-500';
+   226→  return 'bg-white/20';
+   227→}
+   228→
+   229→const fadeUp = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -8 } };
+   230→const stagger = { animate: { transition: { staggerChildren: 0.06 } } };
+   231→
+   232→export default function StyleVaultPage() {
+   233→  const [activeTab, setActiveTab] = useState('suggest');
+   234→  const [ocasion, setOcasion] = useState<Ocasion | null>(null);
+   235→  const [momento, setMomento] = useState<Momento | null>(null);
+   236→  const [clima, setClima] = useState<Clima | null>(null);
+   237→  const [estilo, setEstilo] = useState<Estilo | null>(null);
+   238→  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+   239→  const [loading, setLoading] = useState(false);
+   240→  const [totalAvailable, setTotalAvailable] = useState(0);
+   241→  const [totalInDb, setTotalInDb] = useState(130);
+   242→  const [selectedId, setSelectedId] = useState<string | null>(null);
+   243→  const [randomLoading, setRandomLoading] = useState(false);
+   244→  const [searchText, setSearchText] = useState('');
+   245→  const [detailOutfit, setDetailOutfit] = useState<Suggestion | null>(null);
+   246→  const [mobileSettingsOpen, setMobileSettingsOpen] = useState(true);
+   247→  const [compareIds, setCompareIds] = useState<string[]>([]);
+   248→  const [showComparison, setShowComparison] = useState(false);
+   249→  const [compareData, setCompareData] = useState<Suggestion[]>([]);
+   250→  const greeting = useMemo(getTimeGreeting, []);
+   251→  const { favs, toggle: toggleFav, isFav } = useFavorites();
+   252→  const { history, add: addHistory } = useHistory();
+   253→  const filterCount = [ocasion, momento, clima, estilo].filter(Boolean).length;
+   254→
+   255→  const getSuggestions = useCallback(async () => {
+   256→    setLoading(true);
+   257→    setSelectedId(null);
+   258→    try {
+   259→      const res = await fetch('/api/suggest', {
+   260→        method: 'POST', headers: { 'Content-Type': 'application/json' },
+   261→        body: JSON.stringify({ ocasion: ocasion || undefined, momento: momento || undefined, clima: clima || undefined, estilo: estilo || undefined, count: 8 }),
+   262→      });
+   263→      const data = await res.json();
+   264→      if (data.success) {
+   265→        setSuggestions(data.suggestions);
+   266→        setTotalAvailable(data.totalAvailable);
+   267→        setTotalInDb(data.totalInDatabase);
+   268→        data.suggestions.forEach((s: Suggestion) => addHistory(s.outfit.id));
+   269→      }
+   270→    } catch (e) { console.error(e); }
+   271→    finally { setLoading(false); }
+   272→  }, [ocasion, momento, clima, estilo, addHistory]);
+   273→
+   274→  const getRandomOutfit = useCallback(async () => {
+   275→    setRandomLoading(true);
+   276→    setSelectedId(null);
+   277→    try {
+   278→      const res = await fetch('/api/suggest', {
+   279→        method: 'POST', headers: { 'Content-Type': 'application/json' },
+   280→        body: JSON.stringify({ count: 1 }),
+   281→      });
+   282→      const data = await res.json();
+   283→      if (data.success && data.suggestions.length > 0) {
+   284→        setSuggestions(data.suggestions);
+   285→        setTotalAvailable(data.totalAvailable);
+   286→        setTotalInDb(data.totalInDatabase);
+   287→        addHistory(data.suggestions[0].outfit.id);
+   288→      }
+   289→    } catch (e) { console.error(e); }
+   290→    finally { setRandomLoading(false); }
+   291→  }, [addHistory]);
+   292→
+   293→  const applyPreset = useCallback((p: typeof PRESETS[number]) => {
+   294→    setOcasion(p.ocasion);
+   295→    setMomento(p.momento);
+   296→    setClima(p.clima);
+   297→    setEstilo(p.estilo);
+   298→  }, []);
+   299→
+   300→  const clearFilters = useCallback(() => {
+   301→    setOcasion(null); setMomento(null); setClima(null); setEstilo(null);
+   302→  }, []);
+   303→
+   304→  const filteredSuggestions = useMemo(() => {
+   305→    if (!searchText.trim()) return suggestions;
+   306→    const q = searchText.toLowerCase();
+   307→    return suggestions.filter(s => s.outfit.nombre.toLowerCase().includes(q) || s.outfit.descripcion.toLowerCase().includes(q));
+   308→  }, [suggestions, searchText]);
+   309→
+   310→  const toggleCompare = useCallback((id: string) => {
+   311→    setCompareIds(prev => {
+   312→      if (prev.includes(id)) return prev.filter(x => x !== id);
+   313→      if (prev.length >= 2) return [prev[1], id];
+   314→      return [...prev, id];
+   315→    });
+   316→  }, []);
+   317→
+   318→  const runComparison = useCallback(async () => {
+   319→    if (compareIds.length !== 2) return;
+   320→    setShowComparison(true);
+   321→    try {
+   322→      const results = await Promise.all(compareIds.map(id => fetch(`/api/outfits/${id}`).then(r => r.json())));
+   323→      const data: Suggestion[] = results.map(r => ({
+   324→        outfit: r.outfit, garments: r.garments, score: 0,
+   325→        matchDetails: { ocasion: true, momento: true, clima: true, estilo: true },
+   326→      }));
+   327→      setCompareData(data);
+   328→    } catch { toast.error('Error cargando outfits para comparar'); }
+   329→  }, [compareIds]);
+   330→
+   331→  return (
+   332→    <div className="min-h-screen flex flex-col noise-bg relative overflow-hidden bg-[#0a0a0b]">
+   333→      {/* Background orbs */}
+   334→      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+   335→        <div className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full bg-amber-900/[0.06] blur-[120px] animate-pulse-glow" />
+   336→        <div className="absolute top-1/3 -left-40 w-[500px] h-[500px] rounded-full bg-purple-900/[0.04] blur-[100px] animate-pulse-glow" style={{ animationDelay: '2s' }} />
+   337→        <div className="absolute -bottom-40 right-1/4 w-[400px] h-[400px] rounded-full bg-emerald-900/[0.03] blur-[100px] animate-pulse-glow" style={{ animationDelay: '4s' }} />
+   338→      </div>
+   339→
+   340→      <div className="relative z-10 min-h-screen flex flex-col">
+   341→        {/* Header */}
+   342→        <header className="border-b border-white/[0.05] bg-[#0a0a0b]/70 backdrop-blur-2xl sticky top-0 z-50">
+   343→          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+   344→            <div className="flex items-center gap-3">
+   345→              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 via-amber-700 to-amber-950 flex items-center justify-center shadow-lg shadow-amber-900/30 animate-gradient">
+   346→                <Warehouse className="h-4 w-4 text-amber-100" />
+   347→              </div>
+   348→              <div>
+   349→                <h1 className="text-base font-bold tracking-tight text-white">StyleVault</h1>
+   350→                <p className="text-[9px] text-white/25 -mt-0.5 tracking-[0.2em] uppercase font-medium">Enrique Cascante</p>
+   351→              </div>
+   352→            </div>
+   353→            <div className="flex items-center gap-2.5">
+   354→              {favs.length > 0 && (
+   355→                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-500/8 border border-rose-500/15">
+   356→                  <Heart className="h-3 w-3 text-rose-400 fill-rose-400" />
+   357→                  <span className="text-[10px] text-rose-300 font-semibold tabular-nums">{favs.length}</span>
+   358→                </div>
+   359→              )}
+   360→              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.025] border border-white/[0.05]">
+   361→                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
+   362→                <span className="text-[10px] text-white/35 font-medium">130 outfits</span>
+   363→              </div>
+   364→            </div>
+   365→          </div>
+   366→        </header>
+   367→
+   368→        <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
+   369→          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+   370→            <TabsList className="bg-white/[0.025] border border-white/[0.05] rounded-2xl p-1.5 w-full sm:w-auto backdrop-blur-sm">
+   371→              <TabsTrigger value="suggest" className="rounded-xl data-[state=active]:bg-amber-500/15 data-[state=active]:text-amber-400 data-[state=active]:shadow-[0_0_15px_rgba(245,158,11,0.08)] gap-1.5 text-xs sm:text-sm transition-all duration-300">
+   372→                <Sparkles className="h-3.5 w-3.5" /><span className="hidden sm:inline">Sugerencias</span><span className="sm:hidden">AI</span>
+   373→              </TabsTrigger>
+   374→              <TabsTrigger value="weekly" className="rounded-xl data-[state=active]:bg-white/10 data-[state=active]:text-white gap-1.5 text-xs sm:text-sm transition-all duration-300">
+   375→                <Calendar className="h-3.5 w-3.5" /><span className="hidden sm:inline">Semanal</span><span className="sm:hidden">Sem</span>
+   376→              </TabsTrigger>
+   377→              <TabsTrigger value="wardrobe" className="rounded-xl data-[state=active]:bg-white/10 data-[state=active]:text-white gap-1.5 text-xs sm:text-sm transition-all duration-300">
+   378→                <Layers className="h-3.5 w-3.5" /><span className="hidden sm:inline">Inventario</span><span className="sm:hidden">Ropa</span>
+   379→              </TabsTrigger>
+   380→              <TabsTrigger value="explore" className="rounded-xl data-[state=active]:bg-white/10 data-[state=active]:text-white gap-1.5 text-xs sm:text-sm transition-all duration-300">
+   381→                <Compass className="h-3.5 w-3.5" /><span className="hidden sm:inline">Explorar</span><span className="sm:hidden">All</span>
+   382→              </TabsTrigger>
+   383→              <TabsTrigger value="favorites" className="rounded-xl data-[state=active]:bg-rose-500/15 data-[state=active]:text-rose-400 gap-1.5 text-xs sm:text-sm transition-all duration-300">
+   384→                <Heart className="h-3.5 w-3.5" /><span className="hidden sm:inline">Favoritos</span><span className="sm:hidden">{'\u2764'}</span>
+   385→              </TabsTrigger>
+   386→              <TabsTrigger value="stats" className="rounded-xl data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-400 gap-1.5 text-xs sm:text-sm transition-all duration-300">
+   387→                <BarChart3 className="h-3.5 w-3.5" /><span className="hidden sm:inline">Estadisticas</span><span className="sm:hidden">{'\u{1F4CA}'}</span>
+   388→              </TabsTrigger>
+   389→            </TabsList>
+   390→
+   391→            {/* === SUGERENCIAS TAB === */}
+   392→            <TabsContent value="suggest" className="mt-6">
+   393→              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+   394→                <div className="lg:col-span-4 xl:col-span-3">
+   395→                  <div className="lg:sticky lg:top-24">
+   396→                    <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
+   397→                      <Card className="bg-white/[0.02] border-white/[0.05] rounded-2xl overflow-hidden backdrop-blur-sm shadow-xl shadow-black/10">
+   398→                        <CardHeader className="pb-3">
+   399→                          <div className="flex items-center justify-between">
+   400→                            <CardTitle className="text-sm font-semibold text-white/90 flex items-center gap-2">
+   401→                              <div className="w-6 h-6 rounded-md bg-amber-500/15 flex items-center justify-center">
+   402→                                <SlidersHorizontal className="h-3.5 w-3.5 text-amber-400" />
+   403→                              </div>
+   404→                              Configura tu Look
+   405→                            </CardTitle>
+   406→                            <div className="flex items-center gap-2">
+   407→                              <button className="lg:hidden text-white/30 hover:text-white/60 text-[10px]" onClick={() => setMobileSettingsOpen(v => !v)}>
+   408→                                <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${mobileSettingsOpen ? 'rotate-180' : ''}`} />
+   409→                              </button>
+   410→                              {filterCount > 0 && (
+   411→                                <Button variant="ghost" size="sm" className="text-[10px] text-white/30 hover:text-rose-400 h-6 px-2 rounded-lg hover:bg-rose-500/5 transition-colors" onClick={clearFilters}>
+   412→                                  Limpiar ({filterCount})
+   413→                                </Button>
+   414→                              )}
+   415→                            </div>
+   416→                          </div>
+   417→                          <CardDescription className="text-[11px] text-white/25">Selecciona el contexto para sugerencias inteligentes</CardDescription>
+   418→                        </CardHeader>
+   419→                        <CardContent className={`${mobileSettingsOpen ? '' : 'hidden lg:block'} space-y-4 pb-6`}>
+   420→                          {/* Look del Dia hero */}
+   421→                          <div className="relative rounded-2xl overflow-hidden border border-amber-500/10 bg-gradient-to-br from-amber-900/15 via-amber-950/10 to-transparent p-4 mb-2">
+   422→                            <div className="absolute top-2 right-2 text-[10px] font-medium text-amber-400/50 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/10">
+   423→                              <Timer className="h-2.5 w-2.5 inline mr-1 -mt-0.5" />{greeting.text.split(' ').pop()}
+   424→                            </div>
+   425→                            <p className="text-lg mb-0.5">{greeting.emoji}</p>
+   426→                            <p className="text-xs font-semibold text-white/70">{greeting.text}, Enrique</p>
+   427→                            <p className="text-[10px] text-white/30 mt-0.5">{greeting.sub}</p>
+   428→                            <Button size="sm" className="mt-3 h-8 bg-amber-600/80 hover:bg-amber-500 text-[11px] rounded-lg gap-1.5 shadow-lg shadow-amber-900/20 border border-amber-500/20" onClick={getRandomOutfit} disabled={randomLoading}>
+   429→                              {randomLoading ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Sparkle className="h-3 w-3" />}
+   430→                              Look del Dia
+   431→                            </Button>
+   432→                          </div>
+   433→
+   434→                          {/* Quick Presets */}
+   435→                          <div>
+   436→                            <label className="text-[10px] font-semibold text-white/30 uppercase tracking-[0.15em] mb-2 block">Quick Presets</label>
+   437→                            <div className="grid grid-cols-2 gap-1.5">
+   438→                              {PRESETS.map(p => (
+   439→                                <button key={p.name} onClick={() => applyPreset(p)}
+   440→                                  className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl border border-white/[0.04] bg-white/[0.015] hover:bg-white/[0.05] hover:border-white/[0.1] transition-all duration-200 text-left group">
+   441→                                  <span className="text-sm group-hover:scale-110 transition-transform duration-200">{p.emoji}</span>
+   442→                                  <span className="text-[10px] text-white/45 group-hover:text-white/75 font-medium leading-tight transition-colors">{p.name}</span>
+   443→                                </button>
+   444→                              ))}
+   445→                            </div>
+   446→                          </div>
+   447→                          <Separator className="bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+   448→                          {/* Ocasion */}
+   449→                          <div>
+   450→                            <label className="text-[10px] font-semibold text-white/30 uppercase tracking-[0.15em] mb-2.5 block">Ocasion</label>
+   451→                            <div className="space-y-1">
+   452→                              {OCASION_OPTS.map(opt => (
+   453→                                <button key={opt.value} onClick={() => setOcasion(ocasion === opt.value ? null : opt.value)}
+   454→                                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200 border ${
+   455→                                    ocasion === opt.value
+   456→                                      ? `bg-gradient-to-r ${opt.accent} border-white/10 text-white shadow-sm`
+   457→                                      : 'bg-white/[0.015] border-white/[0.03] text-white/40 hover:bg-white/[0.04] hover:text-white/60'
+   458→                                  }`}>
+   459→                                  <div className={`p-1.5 rounded-lg transition-colors ${ocasion === opt.value ? 'bg-white/10' : 'bg-white/[0.03]'}`}>{opt.icon}</div>
+   460→                                  <div className="flex-1 min-w-0">
+   461→                                    <div className="text-xs font-medium truncate">{LABELS.ocasion[opt.value]}</div>
+   462→                                    <div className={`text-[10px] mt-0.5 transition-colors ${ocasion === opt.value ? 'text-white/45' : 'text-white/18'}`}>{opt.desc}</div>
+   463→                                  </div>
+   464→                                  {ocasion === opt.value && <div className="w-1.5 h-1.5 rounded-full bg-white/60 shadow-[0_0_6px_rgba(255,255,255,0.3)]" />}
+   465→                                </button>
+   466→                              ))}
+   467→                            </div>
+   468→                          </div>
+   469→                          <Separator className="bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+   470→                          {/* Momento */}
+   471→                          <div>
+   472→                            <label className="text-[10px] font-semibold text-white/30 uppercase tracking-[0.15em] mb-2.5 block">Momento</label>
+   473→                            <div className="grid grid-cols-3 gap-1.5">
+   474→                              {MOMENTO_OPTS.map(opt => (
+   475→                                <button key={opt.value} onClick={() => setMomento(momento === opt.value ? null : opt.value)}
+   476→                                  className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border transition-all duration-200 ${
+   477→                                    momento === opt.value ? 'bg-white/[0.08] border-white/15 text-white shadow-sm' : 'bg-white/[0.015] border-white/[0.03] text-white/35 hover:bg-white/[0.04]'
+   478→                                  }`}>
+   479→                                  {opt.icon}<span className="text-[10px] font-medium">{LABELS.momento[opt.value]}</span>
+   480→                                </button>
+   481→                              ))}
+   482→                            </div>
+   483→                          </div>
+   484→                          <Separator className="bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+   485→                          {/* Clima */}
+   486→                          <div>
+   487→                            <label className="text-[10px] font-semibold text-white/30 uppercase tracking-[0.15em] mb-2.5 block">Clima</label>
+   488→                            <div className="grid grid-cols-3 gap-1.5">
+   489→                              {CLIMA_OPTS.map(opt => (
+   490→                                <button key={opt.value} onClick={() => setClima(clima === opt.value ? null : opt.value)}
+   491→                                  className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border transition-all duration-200 ${
+   492→                                    clima === opt.value ? 'bg-white/[0.08] border-white/15 text-white shadow-sm' : 'bg-white/[0.015] border-white/[0.03] text-white/35 hover:bg-white/[0.04]'
+   493→                                  }`}>
+   494→                                  {opt.icon}<span className="text-[10px] font-medium">{LABELS.clima[opt.value]}</span>
+   495→                                </button>
+   496→                              ))}
+   497→                            </div>
+   498→                          </div>
+   499→                          <Separator className="bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+   500→                          {/* Estetica */}
+   501→                          <div>
+   502→                            <label className="text-[10px] font-semibold text-white/30 uppercase tracking-[0.15em] mb-2.5 block">Estetica</label>
+   503→                            <div className="grid grid-cols-2 gap-1.5">
+   504→                              {ESTILO_OPTS.map(opt => (
+   505→                                <button key={opt.value} onClick={() => setEstilo(estilo === opt.value ? null : opt.value)}
+   506→                                  className={`px-3 py-2.5 rounded-xl border text-center transition-all duration-200 flex items-center justify-center gap-2 ${
+   507→                                    estilo === opt.value ? 'bg-white/[0.08] border-white/15 shadow-sm' : 'bg-white/[0.015] border-white/[0.03] text-white/35 hover:bg-white/[0.04]'
+   508→                                  }`}>
+   509→                                  <span className={estilo === opt.value ? opt.color : 'text-white/18'}>{opt.icon}</span>
+   510→                                  <span className={`text-[11px] font-medium ${estilo === opt.value ? 'text-white' : ''}`}>{opt.label}</span>
+   511→                                </button>
+   512→                              ))}
+   513→                            </div>
+   514→                          </div>
+   515→                          <Button onClick={getSuggestions} disabled={loading}
+   516→                            className="w-full h-12 bg-gradient-to-r from-amber-600 via-amber-700 to-amber-900 hover:from-amber-500 hover:via-amber-600 hover:to-amber-800 text-amber-50 rounded-xl text-sm font-semibold transition-all duration-300 shadow-lg shadow-amber-900/25 hover:shadow-amber-800/30 border border-amber-600/20">
+   517→                            {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <><Sparkles className="h-4 w-4 mr-2" />Generar Sugerencias</>}
+   518→                          </Button>
+   519→                          {/* Compare button */}
+   520→                          {compareIds.length > 0 && (
+   521→                            <Button onClick={runComparison} disabled={compareIds.length < 2}
+   522→                              variant="outline" className="w-full h-10 rounded-xl border-white/[0.06] text-white/40 hover:text-amber-400 hover:border-amber-500/20 text-xs gap-2 transition-all">
+   523→                              <ArrowLeftRight className="h-3.5 w-3.5" />
+   524→                              Comparar ({compareIds.length}/2)
+   525→                            </Button>
+   526→                          )}
+   527→                        </CardContent>
+   528→                      </Card>
+   529→                    </motion.div>
+   530→                  </div>
+   531→                </div>
+   532→
+   533→                <div className="lg:col-span-8 xl:col-span-9">
+   534→                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>
+   535→                    {/* Empty state */}
+   536→                    {suggestions.length === 0 && !loading && (
+   537→                      <div className="flex flex-col items-center justify-center h-[60vh] text-center">
+   538→                        <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.6, type: 'spring' }}>
+   539→                          <div className="relative mb-8">
+   540→                            <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-white/[0.07] flex items-center justify-center animate-float-slow backdrop-blur-sm">
+   541→                              <Palette className="h-10 w-10 text-white/12" />
+   542→                            </div>
+   543→                            <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-amber-500/15 border border-amber-500/25 flex items-center justify-center animate-pulse">
+   544→                              <Dice5 className="h-4 w-4 text-amber-400" />
+   545→                            </div>
+   546→                          </div>
+   547→                          <h2 className="text-2xl font-bold text-white/50 mb-2">{'\u00bf'}Que te vas a poner hoy?</h2>
+   548→                          <p className="text-sm text-white/20 max-w-md mb-8 leading-relaxed">
+   549→                            Configura tu ocasion, momento, clima y estetica para obtener sugerencias personalizadas de tu guardarropa.
+   550→                          </p>
+   551→                          <Button variant="outline" size="lg" className="rounded-2xl border-white/[0.08] text-white/35 hover:text-amber-400 hover:border-amber-500/25 hover:bg-amber-500/5 gap-2 px-6 transition-all duration-300" onClick={getRandomOutfit} disabled={randomLoading}>
+   552→                            {randomLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Dice5 className="h-4 w-4" />}
+   553→                            Sorprendeme
+   554→                          </Button>
+   555→                          {history.length > 0 && (
+   556→                            <div className="mt-8">
+   557→                              <p className="text-[10px] text-white/15 uppercase tracking-[0.15em] mb-3 font-semibold">Recientes</p>
+   558→                              <div className="flex gap-1.5 justify-center flex-wrap max-w-lg">
+   559→                                {history.slice(0, 8).map(id => (
+   560→                                  <span key={id} className="text-[10px] px-2.5 py-1 rounded-full bg-white/[0.025] border border-white/[0.04] text-white/20 font-mono">{id}</span>
+   561→                                ))}
+   562→                              </div>
+   563→                            </div>
+   564→                          )}
+   565→                        </motion.div>
+   566→                      </div>
+   567→                    )}
+   568→                    {/* Loading */}
+   569→                    {loading && (
+   570→                      <div className="space-y-4">
+   571→                        {[1, 2, 3, 4].map(i => (
+   572→                          <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
+   573→                            <Skeleton className="h-48 bg-white/[0.02] rounded-2xl border border-white/[0.03]" />
+   574→                          </motion.div>
+   575→                        ))}
+   576→                      </div>
+   577→                    )}
+   578→                    {/* Results */}
+   579→                    {suggestions.length > 0 && !loading && (
+   580→                      <div className="space-y-4">
+   581→                        <div className="flex items-center justify-between px-1 gap-3">
+   582→                          <div className="flex items-center gap-3 min-w-0">
+   583→                            <div className="relative flex-1 max-w-xs">
+   584→                              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/15" />
+   585→                              <Input placeholder="Filtrar sugerencias..." value={searchText} onChange={e => setSearchText(e.target.value)}
+   586→                                className="h-8 pl-8 pr-8 text-xs bg-white/[0.025] border-white/[0.05] rounded-xl text-white/65 placeholder:text-white/15 focus:border-amber-500/25 focus:ring-amber-500/10" />
+   587→                              {searchText && <button onClick={() => setSearchText('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-white/15 hover:text-white/40"><X className="h-3 w-3" /></button>}
+   588→                            </div>
+   589→                          </div>
+   590→                          <div className="flex items-center gap-2 flex-shrink-0">
+   591→                            <div className="hidden sm:flex items-center gap-1.5 text-xs text-white/35">
+   592→                              <span className="text-amber-400/70 font-bold tabular-nums">{filteredSuggestions.length}</span>
+   593→                              <span>resultados</span>
+   594→                              <div className="w-px h-3 bg-white/[0.08] mx-1" />
+   595→                              <span className="text-[10px] text-white/20">de {totalAvailable} matching</span>
+   596→                            </div>
+   597→                            <Button variant="ghost" size="sm" className="text-xs text-white/25 hover:text-amber-400 h-7 gap-1" onClick={getRandomOutfit} disabled={randomLoading}>
+   598→                              <Dice5 className="h-3 w-3" /> <span className="hidden sm:inline">Random</span>
+   599→                            </Button>
+   600→                            <Button variant="ghost" size="sm" className="text-xs text-amber-500/50 hover:text-amber-400 h-7 gap-1" onClick={getSuggestions}>
+   601→                              <RefreshCw className="h-3 w-3" /> <span className="hidden sm:inline">Refrescar</span>
+   602→                            </Button>
+   603→                          </div>
+   604→                        </div>
+   605→                        <motion.div className="space-y-3" variants={stagger} initial="initial" animate="animate">
+   606→                          <AnimatePresence mode="popLayout">
+   607→                            {filteredSuggestions.map((s, i) => (
+   608→                              <motion.div key={s.outfit.id} variants={fadeUp} layout>
+   609→                                <OutfitCardRow suggestion={s} rank={i + 1} selected={selectedId === s.outfit.id}
+   610→                                  onSelect={() => setSelectedId(selectedId === s.outfit.id ? null : s.outfit.id)}
+   611→                                  isFav={isFav(s.outfit.id)} onToggleFav={() => toggleFav(s.outfit.id)}
+   612→                                  onViewDetail={() => setDetailOutfit(s)}
+   613→                                  onShare={() => copyOutfitToClipboard(s.outfit, s.garments)}
+   614→                                  compareMode={compareIds.length > 0}
+   615→                                  isComparing={compareIds.includes(s.outfit.id)}
+   616→                                  onToggleCompare={() => toggleCompare(s.outfit.id)} />
+   617→                              </motion.div>
+   618→                            ))}
+   619→                          </AnimatePresence>
+   620→                        </motion.div>
+   621→                        {filteredSuggestions.length === 0 && searchText && (
+   622→                          <div className="text-center py-12 text-white/25 text-sm">No se encontraron resultados para &ldquo;{searchText}&rdquo;</div>
+   623→                        )}
+   624→                      </div>
+   625→                    )}
+   626→                  </motion.div>
+   627→                </div>
+   628→              </div>
+   629→            </TabsContent>
+   630→
+   631→            {/* === WEEKLY TAB === */}
+   632→            <TabsContent value="weekly" className="mt-6">
+   633→              <WeeklyPlannerSection favs={favs} isFav={isFav} onToggleFav={toggleFav} onViewDetail={(s: Suggestion) => setDetailOutfit(s)} />
+   634→            </TabsContent>
+   635→
+   636→            {/* === WARDROBE TAB === */}
+   637→            <TabsContent value="wardrobe" className="mt-6">
+   638→              <WardrobeSection />
+   639→            </TabsContent>
+   640→
+   641→            {/* === EXPLORE TAB === */}
+   642→            <TabsContent value="explore" className="mt-6">
+   643→              <ExploreSection favs={favs} isFav={isFav} onToggleFav={toggleFav} onViewDetail={(s: Suggestion) => setDetailOutfit(s)} />
+   644→            </TabsContent>
+   645→
+   646→            {/* === FAVORITES TAB === */}
+   647→            <TabsContent value="favorites" className="mt-6">
+   648→              <FavoritesSection favs={favs} isFav={isFav} onToggleFav={toggleFav} onViewDetail={(s: Suggestion) => setDetailOutfit(s)} />
+   649→            </TabsContent>
+   650→
+   651→            {/* === STATS TAB === */}
+   652→            <TabsContent value="stats" className="mt-6">
+   653→              <StatsSection />
+   654→            </TabsContent>
+   655→          </Tabs>
+   656→        </main>
+   657→
+   658→        {/* Footer */}
+   659→        <footer className="border-t border-white/[0.04] mt-auto bg-[#0a0a0b]/50 backdrop-blur-sm">
+   660→          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+   661→            <div className="flex items-center gap-2">
+   662→              <div className="w-5 h-5 rounded-md bg-gradient-to-br from-amber-500/30 to-amber-900/30 flex items-center justify-center">
+   663→                <Warehouse className="h-2.5 w-2.5 text-amber-400/60" />
+   664→              </div>
+   665→              <p className="text-[10px] text-white/15 font-medium">StyleVault v4.0 \u{2014} Enrique Cascante</p>
+   666→            </div>
+   667→            <div className="flex items-center gap-3 text-[10px] text-white/12 font-medium">
+   668→              <span>130 outfits</span>
+   669→              <div className="w-px h-2.5 bg-white/[0.06]" />
+   670→              <span>46 prendas</span>
+   671→              <div className="w-px h-2.5 bg-white/[0.06]" />
+   672→              <span>4 esteticas</span>
+   673→              <div className="w-px h-2.5 bg-white/[0.06]" />
+   674→              <span className="text-amber-400/30">Planner + Share</span>
+   675→            </div>
+   676→          </div>
+   677→        </footer>
+   678→      </div>
+   679→
+   680→      {/* Outfit Detail Dialog */}
+   681→      {detailOutfit && (
+   682→        <OutfitDetailDialog outfit={detailOutfit} onClose={() => setDetailOutfit(null)} isFav={isFav(detailOutfit.outfit.id)} onToggleFav={() => toggleFav(detailOutfit.outfit.id)} />
+   683→      )}
+   684→
+   685→      {/* Comparison Dialog */}
+   686→      {showComparison && (
+   687→        <ComparisonDialog outfits={compareData} onClose={() => { setShowComparison(false); setCompareIds([]); setCompareData([]); }} />
+   688→      )}
+   689→    </div>
+   690→  );
+   691→}
+   692→
+   693→/* ============================================================
+   694→   OUTFIT CARD ROW (Suggestions Tab)
+   695→   ============================================================ */
+   696→function OutfitCardRow({ suggestion, rank, selected, onSelect, isFav, onToggleFav, onViewDetail, onShare, compareMode, isComparing, onToggleCompare }: {
+   697→  suggestion: Suggestion; rank: number; selected: boolean; onSelect: () => void; isFav?: boolean; onToggleFav?: () => void; onViewDetail?: () => void; onShare?: () => void; compareMode?: boolean; isComparing?: boolean; onToggleCompare?: () => void;
+   698→}) {
+   699→  const { outfit, garments, matchDetails, score } = suggestion;
+   700→  const matchCount = [matchDetails.ocasion, matchDetails.momento, matchDetails.clima, matchDetails.estilo].filter(Boolean).length;
+   701→  const harmony = getHarmonyScore(outfit.paletaColores);
+   702→  return (
+   703→    <Card className={`bg-white/[0.02] border rounded-2xl overflow-hidden transition-all duration-300 group backdrop-blur-sm weekly-card-shine ${
+   704→      isComparing ? 'border-amber-500/30 shadow-[0_0_25px_-5px_rgba(245,158,11,0.1)] animate-glow-pulse' :
+   705→      selected ? 'border-amber-500/20 shadow-[0_0_30px_-5px_rgba(245,158,11,0.06)]' : 'border-white/[0.04] hover:border-white/[0.08] hover:shadow-lg hover:shadow-black/20'
+   706→    }`}>
+   707→      <CardContent className="p-0">
+   708→        {/* Top bar: rank + score + actions */}
+   709→        <div className="flex items-center justify-between px-5 pt-4 pb-2">
+   710→          <div className="flex items-center gap-2.5">
+   711→            <span className={`text-[11px] font-black tabular-nums w-8 h-8 rounded-lg flex items-center justify-center border ${
+   712→              rank === 1 ? 'bg-gradient-to-br from-amber-500/25 to-amber-700/15 border-amber-500/30 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.12)]' :
+   713→              rank === 2 ? 'bg-white/[0.05] border-white/[0.08] text-white/45' :
+   714→              rank === 3 ? 'bg-orange-500/8 border-orange-500/12 text-orange-400/80' :
+   715→              'bg-white/[0.02] border-white/[0.05] text-white/20'
+   716→            }`}>#{rank}</span>
+   717→            <div className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${getScoreBg(score)} ${getScoreColor(score)}`}>{Math.round(score)}%</div>
+   718→            <div className={`w-12 h-1.5 rounded-full bg-white/[0.04] overflow-hidden`}><div className={`h-full rounded-full ${getScoreBarColor(score)} transition-all duration-700`} style={{ width: `${score}%` }} /></div>
+   719→            <span className="text-[10px] text-white/18">{matchCount}/4</span>
+   720→            {/* Harmony mini indicator */}
+   721→            <div className="hidden sm:flex items-center gap-1 ml-1">
+   722→              <div className={`w-1.5 h-1.5 rounded-full ${harmony.score >= 75 ? 'bg-emerald-400' : harmony.score >= 55 ? 'bg-amber-400' : 'bg-orange-400'}`} />
+   723→              <span className="text-[9px] text-white/15 font-mono">{harmony.score}</span>
+   724→            </div>
+   725→          </div>
+   726→          <div className="flex items-center gap-0.5">
+   727→            {compareMode && onToggleCompare && (
+   728→              <button className={`h-7 w-7 p-0 rounded-lg transition-all duration-200 flex items-center justify-center ${isComparing ? 'text-amber-400 bg-amber-500/10' : 'text-white/10 hover:text-amber-400 hover:bg-amber-500/5'}`} onClick={(e) => { e.stopPropagation(); onToggleCompare(); }} title="Comparar">
+   729→                <ArrowLeftRight className="h-3 w-3" />
+   730→              </button>
+   731→            )}
+   732→            {onShare && (
+   733→              <button className="h-7 w-7 p-0 rounded-lg transition-all duration-200 flex items-center justify-center text-white/10 hover:text-white/40" onClick={(e) => { e.stopPropagation(); onShare(); }} title="Compartir">
+   734→                <Share2 className="h-3 w-3" />
+   735→              </button>
+   736→            )}
+   737→            {onToggleFav && (
+   738→              <button className={`h-7 w-7 p-0 rounded-lg transition-all duration-200 flex items-center justify-center ${isFav ? 'text-rose-400 hover:text-rose-300' : 'text-white/10 hover:text-rose-400'}`} onClick={(e) => { e.stopPropagation(); onToggleFav(); }}>
+   739→                <Heart className={`h-3.5 w-3.5 transition-all ${isFav ? 'fill-rose-400 scale-110' : ''}`} />
+   740→              </button>
+   741→            )}
+   742→            <button className={`h-7 w-7 p-0 rounded-lg flex items-center justify-center transition-transform duration-300 text-white/12 ${selected ? 'rotate-180' : ''}`} onClick={(e) => { e.stopPropagation(); onSelect(); }}>
+   743→              <ChevronDown className="h-3.5 w-3.5" />
+   744→            </button>
+   745→          </div>
+   746→        </div>
+   747→        {/* Main content */}
+   748→        <button onClick={onSelect} className="w-full text-left px-5 pb-4">
+   749→          <h3 className="text-[15px] font-semibold text-white/80 group-hover:text-amber-200 transition-colors leading-tight">{outfit.nombre}</h3>
+   750→          <p className="text-xs text-white/30 mt-1.5 line-clamp-2 leading-relaxed">{outfit.descripcion}</p>
+   751→          <div className="flex items-center gap-2 mt-4">
+   752→            <div className="flex -space-x-1">
+   753→              {outfit.paletaColores.map((color, i) => (
+   754→                <div key={i} className="w-7 h-7 rounded-full border-2 border-[#0a0a0b] shadow-md transition-transform hover:scale-125 hover:z-10 relative" style={{ backgroundColor: color, zIndex: outfit.paletaColores.length - i }} title={color} />
+   755→              ))}
+   756→            </div>
+   757→            <div className="flex-1" />
+   758→            <div className="flex flex-wrap gap-1">
+   759→              {matchDetails.ocasion && <Badge variant="secondary" className="bg-emerald-500/8 text-emerald-400/80 border-emerald-500/12 text-[10px] px-2 py-0 h-5 font-medium">{LABELS.ocasion[outfit.ocasion[0] as keyof typeof LABELS.ocasion]}</Badge>}
+   760→              {matchDetails.momento && <Badge variant="secondary" className="bg-sky-500/8 text-sky-400/80 border-sky-500/12 text-[10px] px-2 py-0 h-5 font-medium">{LABELS.momento[outfit.momento[0] as keyof typeof LABELS.momento]}</Badge>}
+   761→              {matchDetails.clima && <Badge variant="secondary" className="bg-orange-500/8 text-orange-400/80 border-orange-500/12 text-[10px] px-2 py-0 h-5 font-medium">{LABELS.clima[outfit.clima[0] as keyof typeof LABELS.clima]}</Badge>}
+   762→              {matchDetails.estilo && <Badge variant="secondary" className="bg-violet-500/8 text-violet-400/80 border-violet-500/12 text-[10px] px-2 py-0 h-5 font-medium">{LABELS.estilo[outfit.estilo[0] as keyof typeof LABELS.estilo]}</Badge>}
+   763→            </div>
+   764→          </div>
+   765→        </button>
+   766→        {/* Expanded garment list */}
+   767→        <AnimatePresence>
+   768→          {selected && (
+   769→            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="border-t border-white/[0.04] bg-white/[0.01] px-5 py-4">
+   770→              <h4 className="text-[10px] font-semibold text-white/25 uppercase tracking-[0.15em] mb-3">Prendas del Outfit</h4>
+   771→              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+   772→                {garments.map((g) => (
+   773→                  <div key={g.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/[0.03] hover:bg-white/[0.04] transition-colors">
+   774→                    <span className="text-base">{g.emoji}</span>
+   775→                    <div className="flex-1 min-w-0">
+   776→                      <p className="text-[11px] text-white/65 truncate font-medium">{g.nombre}</p>
+   777→                      <p className="text-[10px] text-white/20">{g.color}</p>
+   778→                    </div>
+   779→                    <div className="w-4 h-4 rounded-full border border-white/[0.08] flex-shrink-0" style={{ backgroundColor: g.colorHex }} />
+   780→                  </div>
+   781→                ))}
+   782→              </div>
+   783→              {onViewDetail && (
+   784→                <div className="flex gap-2 mt-3">
+   785→                  <Button variant="outline" size="sm" className="flex-1 rounded-xl border-white/[0.05] text-white/35 hover:text-amber-400 hover:border-amber-500/20 hover:bg-amber-500/5 text-xs gap-2 transition-all duration-200" onClick={(e) => { e.stopPropagation(); onViewDetail(); }}>
+   786→                    <Eye className="h-3 w-3" /> Ver Detalle
+   787→                  </Button>
+   788→                  {onShare && (
+   789→                    <Button variant="outline" size="sm" className="rounded-xl border-white/[0.05] text-white/35 hover:text-white/60 hover:border-white/[0.1] text-xs gap-2 transition-all duration-200" onClick={(e) => { e.stopPropagation(); onShare(); }}>
+   790→                      <Share2 className="h-3 w-3" /> Compartir
+   791→                    </Button>
+   792→                  )}
+   793→                </div>
+   794→              )}
+   795→            </motion.div>
+   796→          )}
+   797→        </AnimatePresence>
+   798→      </CardContent>
+   799→    </Card>
+   800→  );
+   801→}
+   802→
+   803→/* ============================================================
+   804→   OUTFIT DETAIL DIALOG (Enhanced with Color Harmony)
+   805→   ============================================================ */
+   806→function OutfitDetailDialog({ outfit: s, onClose, isFav, onToggleFav }: { outfit: Suggestion; onClose: () => void; isFav: boolean; onToggleFav: () => void }) {
+   807→  const [copied, setCopied] = useState(false);
+   808→  const harmony = getHarmonyScore(s.outfit.paletaColores);
+   809→
+   810→  const handleCopy = () => {
+   811→    copyOutfitToClipboard(s.outfit, s.garments);
+   812→    setCopied(true);
+   813→    setTimeout(() => setCopied(false), 2000);
+   814→  };
+   815→
+   816→  return (
+   817→    <Dialog open onOpenChange={onClose}>
+   818→      <DialogContent className="bg-[#111113] border-white/[0.07] rounded-2xl max-w-lg w-[95vw] p-0 overflow-hidden backdrop-blur-xl">
+   819→        {/* Header gradient */}
+   820→        <div className="relative">
+   821→          <div className="h-36 bg-gradient-to-br from-amber-900/15 via-purple-900/10 to-transparent relative overflow-hidden">
+   822→            <div className="absolute inset-0 opacity-30" style={{ background: `linear-gradient(135deg, ${s.outfit.paletaColores[0]}20 0%, transparent 50%, ${s.outfit.paletaColores[s.outfit.paletaColores.length - 1]}15 100%)` }} />
+   823→          </div>
+   824→          <div className="absolute -bottom-6 left-6 flex items-center gap-3">
+   825→            <div className="w-14 h-14 rounded-2xl bg-[#111113] border-2 border-white/[0.08] flex items-center justify-center shadow-xl">
+   826→              <Gem className="h-6 w-6 text-amber-400" />
+   827→            </div>
+   828→          </div>
+   829→          {/* Close button */}
+   830→          <button onClick={onClose} className="absolute top-3 right-3 h-8 w-8 rounded-lg bg-black/30 backdrop-blur-sm border border-white/[0.06] flex items-center justify-center text-white/40 hover:text-white/70 transition-colors">
+   831→            <X className="h-4 w-4" />
+   832→          </button>
+   833→        </div>
+   834→        <div className="px-6 pt-10 pb-6 space-y-5">
+   835→          <DialogHeader>
+   836→            <div className="flex items-start justify-between gap-3">
+   837→              <div className="flex-1">
+   838→                <DialogTitle className="text-xl font-bold text-white/90 leading-tight">{s.outfit.nombre}</DialogTitle>
+   839→                <DialogDescription className="text-sm text-white/35 mt-2 leading-relaxed">{s.outfit.descripcion}</DialogDescription>
+   840→              </div>
+   841→              <button onClick={onToggleFav} className={`h-10 w-10 rounded-xl border flex items-center justify-center transition-all duration-200 flex-shrink-0 ${isFav ? 'border-rose-500/25 bg-rose-500/10 text-rose-400' : 'border-white/[0.05] bg-white/[0.02] text-white/15 hover:text-rose-400'}`}>
+   842→                <Heart className={`h-4 w-4 ${isFav ? 'fill-rose-400' : ''}`} />
+   843→              </button>
+   844→            </div>
+   845→          </DialogHeader>
+   846→
+   847→          {/* Color Palette + Harmony */}
+   848→          <div className="grid grid-cols-[1fr_auto] gap-4">
+   849→            <div>
+   850→              <p className="text-[10px] font-semibold text-white/25 uppercase tracking-[0.15em] mb-3">Paleta de Colores</p>
+   851→              <div className="flex items-center gap-2">
+   852→                {s.outfit.paletaColores.map((c, i) => (
+   853→                  <div key={i} className="group relative">
+   854→                    <div className="w-10 h-10 rounded-xl border-2 border-white/[0.06] shadow-lg transition-transform hover:scale-110" style={{ backgroundColor: c }} />
+   855→                  </div>
+   856→                ))}
+   857→              </div>
+   858→            </div>
+   859→            <div className="text-right">
+   860→              <p className="text-[10px] font-semibold text-white/25 uppercase tracking-[0.15em] mb-1">Armonia</p>
+   861→              <div className={`text-2xl font-black tabular-nums ${harmony.score >= 75 ? 'text-emerald-400' : harmony.score >= 55 ? 'text-amber-400' : 'text-orange-400'}`}>{harmony.score}</div>
+   862→              <p className="text-[9px] text-white/25 mt-0.5">{harmony.label}</p>
+   863→            </div>
+   864→          </div>
+   865→
+   866→          {/* Harmony description */}
+   867→          <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border ${harmony.score >= 75 ? 'bg-emerald-500/5 border-emerald-500/10' : harmony.score >= 55 ? 'bg-amber-500/5 border-amber-500/10' : 'bg-orange-500/5 border-orange-500/10'}`}>
+   868→            <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${harmony.score >= 75 ? 'bg-emerald-400' : harmony.score >= 55 ? 'bg-amber-400' : 'bg-orange-400'}`} />
+   869→            <p className="text-[10px] text-white/35">{harmony.description}</p>
+   870→          </div>
+   871→
+   872→          {/* Tags */}
+   873→          <div>
+   874→            <p className="text-[10px] font-semibold text-white/25 uppercase tracking-[0.15em] mb-3">Contexto</p>
+   875→            <div className="flex flex-wrap gap-1.5">
+   876→              {s.outfit.ocasion.map((o) => <Badge key={o} className="bg-emerald-500/8 text-emerald-400/80 border-emerald-500/12 text-[10px] font-medium">{LABELS.ocasion[o as keyof typeof LABELS.ocasion]}</Badge>)}
+   877→              {s.outfit.momento.map((m) => <Badge key={m} className="bg-sky-500/8 text-sky-400/80 border-sky-500/12 text-[10px] font-medium">{LABELS.momento[m as keyof typeof LABELS.momento]}</Badge>)}
+   878→              {s.outfit.clima.map((c) => <Badge key={c} className="bg-orange-500/8 text-orange-400/80 border-orange-500/12 text-[10px] font-medium">{LABELS.clima[c as keyof typeof LABELS.clima]}</Badge>)}
+   879→              {s.outfit.estilo.map((e) => <Badge key={e} className="bg-violet-500/8 text-violet-400/80 border-violet-500/12 text-[10px] font-medium">{LABELS.estilo[e as keyof typeof LABELS.estilo]}</Badge>)}
+   880→            </div>
+   881→          </div>
+   882→
+   883→          {/* Garments */}
+   884→          <div>
+   885→            <p className="text-[10px] font-semibold text-white/25 uppercase tracking-[0.15em] mb-3">Prendas Incluidas</p>
+   886→            <div className="space-y-1.5">
+   887→              {s.garments.map((g) => (
+   888→                <div key={g.id} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.025] border border-white/[0.04] hover:bg-white/[0.035] transition-colors">
+   889→                  <span className="text-lg">{g.emoji}</span>
+   890→                  <div className="flex-1 min-w-0">
+   891→                    <p className="text-sm text-white/75 font-medium truncate">{g.nombre}</p>
+   892→                    <p className="text-[11px] text-white/25">{g.color}</p>
+   893→                  </div>
+   894→                  <div className="w-5 h-5 rounded-full border border-white/[0.08]" style={{ backgroundColor: g.colorHex }} />
+   895→                </div>
+   896→              ))}
+   897→            </div>
+   898→          </div>
+   899→
+   900→          {/* Action bar */}
+   901→          <div className="flex items-center justify-between pt-2 gap-3">
+   902→            <div className="flex items-center gap-2">
+   903→              {s.score > 0 && <div className={`text-sm font-bold ${getScoreColor(s.score)}`}>Match: {Math.round(s.score)}%</div>}
+   904→            </div>
+   905→            <div className="flex items-center gap-2">
+   906→              <Button variant="outline" size="sm" className="rounded-xl border-white/[0.05] text-white/35 hover:text-white/60 text-xs gap-2 h-9" onClick={handleCopy}>
+   907→                {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+   908→                {copied ? 'Copiado' : 'Copiar'}
+   909→              </Button>
+   910→              <Button onClick={onClose} className="rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-sm font-medium transition-all duration-200 px-5 h-9">
+   911→                <Sparkles className="h-4 w-4 mr-2" />Usar este Look
+   912→              </Button>
+   913→            </div>
+   914→          </div>
+   915→        </div>
+   916→      </DialogContent>
+   917→    </Dialog>
+   918→  );
+   919→}
+   920→
+   921→/* ============================================================
+   922→   COMPARISON DIALOG
+   923→   ============================================================ */
+   924→function ComparisonDialog({ outfits, onClose }: { outfits: Suggestion[]; onClose: () => void }) {
+   925→  if (outfits.length !== 2) return null;
+   926→  const [a, b] = outfits;
+   927→  const hA = getHarmonyScore(a.outfit.paletaColores);
+   928→  const hB = getHarmonyScore(b.outfit.paletaColores);
+   929→  return (
+   930→    <Dialog open onOpenChange={onClose}>
+   931→      <DialogContent className="bg-[#111113] border-white/[0.07] rounded-2xl max-w-3xl w-[95vw] p-0 overflow-hidden backdrop-blur-xl max-h-[85vh] overflow-y-auto">
+   932→        <div className="p-6 space-y-5">
+   933→          <DialogHeader>
+   934→            <DialogTitle className="text-lg font-bold text-white/90 flex items-center gap-2">
+   935→              <ArrowLeftRight className="h-5 w-5 text-amber-400" />Comparacion de Outfits
+   936→            </DialogTitle>
+   937→          </DialogHeader>
+   938→          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+   939→            {[a, b].map((s, i) => {
+   940→              const h = i === 0 ? hA : hB;
+   941→              return (
+   942→                <div key={s.outfit.id} className="bg-white/[0.025] border border-white/[0.05] rounded-2xl p-5 space-y-4">
+   943→                  <div>
+   944→                    <h3 className="text-base font-bold text-white/85">{s.outfit.nombre}</h3>
+   945→                    <p className="text-xs text-white/30 mt-1 line-clamp-2">{s.outfit.descripcion}</p>
+   946→                  </div>
+   947→                  <div className="flex -space-x-1">{s.outfit.paletaColores.map((c, j) => <div key={j} className="w-6 h-6 rounded-full border-2 border-[#111113]" style={{ backgroundColor: c }} />)}</div>
+   948→                  <div className="flex flex-wrap gap-1">
+   949→                    {s.outfit.estilo.map(e => <Badge key={e} className="bg-violet-500/8 text-violet-400/80 text-[9px] px-1.5 py-0 border-violet-500/10">{LABELS.estilo[e as keyof typeof LABELS.estilo]}</Badge>)}
+   950→                    {s.outfit.clima.map(c => <Badge key={c} className="bg-orange-500/8 text-orange-400/80 text-[9px] px-1.5 py-0 border-orange-500/10">{LABELS.clima[c as keyof typeof LABELS.clima]}</Badge>)}
+   951→                  </div>
+   952→                  <div className="text-[10px] text-white/20 uppercase tracking-wider font-semibold pt-2 border-t border-white/[0.04]">Prendas</div>
+   953→                  {s.garments.map(g => (
+   954→                    <div key={g.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-white/[0.02]">
+   955→                      <span className="text-sm">{g.emoji}</span>
+   956→                      <span className="text-[11px] text-white/60 truncate flex-1">{g.nombre}</span>
+   957→                      <div className="w-3 h-3 rounded-full border border-white/[0.06]" style={{ backgroundColor: g.colorHex }} />
+   958→                    </div>
+   959→                  ))}
+   960→                  <div className={`flex items-center justify-between px-3 py-2.5 rounded-xl border ${h.score >= 75 ? 'bg-emerald-500/5 border-emerald-500/10' : 'bg-amber-500/5 border-amber-500/10'}`}>
+   961→                    <span className="text-[10px] text-white/30 font-medium">Armonia</span>
+   962→                    <span className={`text-sm font-bold tabular-nums ${h.score >= 75 ? 'text-emerald-400' : 'text-amber-400'}`}>{h.score}%</span>
+   963→                  </div>
+   964→                </div>
+   965→              );
+   966→            })}
+   967→          </div>
+   968→          {/* Comparison summary */}
+   969→          <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-4">
+   970→            <div className="grid grid-cols-3 gap-4 text-center">
+   971→              <div>
+   972→                <p className="text-[9px] text-white/25 uppercase tracking-wider mb-1">Colores A</p>
+   973→                <p className="text-lg font-bold text-white/60 tabular-nums">{a.outfit.paletaColores.length}</p>
+   974→              </div>
+   975→              <div>
+   976→                <p className="text-[9px] text-white/25 uppercase tracking-wider mb-1">Colores B</p>
+   977→                <p className="text-lg font-bold text-white/60 tabular-nums">{b.outfit.paletaColores.length}</p>
+   978→              </div>
+   979→              <div>
+   980→                <p className="text-[9px] text-white/25 uppercase tracking-wider mb-1">Prendas</p>
+   981→                <p className="text-lg font-bold text-white/60 tabular-nums">{a.garments.length} vs {b.garments.length}</p>
+   982→              </div>
+   983→            </div>
+   984→          </div>
+   985→        </div>
+   986→      </DialogContent>
+   987→    </Dialog>
+   988→  );
+   989→}
+   990→
+   991→/* ============================================================
+   992→   WEEKLY PLANNER SECTION
+   993→   ============================================================ */
+   994→function WeeklyPlannerSection({ favs, isFav, onToggleFav, onViewDetail }: { favs: string[]; isFav: (id: string) => boolean; onToggleFav: (id: string) => void; onViewDetail: (s: Suggestion) => void }) {
+   995→  const [week, setWeek] = useState<WeeklyDay[]>([]);
+   996→  const [loading, setLoading] = useState(false);
+   997→  const [weeklyClima, setWeeklyClima] = useState<Clima | null>(null);
+   998→
+   999→  const generateWeek = useCallback(async () => {
+  1000→    setLoading(true);
+  1001→    try {
+  1002→      const res = await fetch('/api/weekly', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clima: weeklyClima || undefined }) });
+  1003→      const data = await res.json();
+  1004→      if (data.success) {
+  1005→        setWeek(data.week);
+  1006→        localStorage.setItem(WEEKLY_KEY, JSON.stringify({ date: new Date().toDateString(), week: data.week }));
+  1007→      }
+  1008→    } catch (e) { console.error(e); }
+  1009→    finally { setLoading(false); }
+  1010→  }, [weeklyClima]);
+  1011→
+  1012→  useEffect(() => {
+  1013→    try {
+  1014→      const cached = JSON.parse(localStorage.getItem(WEEKLY_KEY) || '{}');
+  1015→      if (cached.date === new Date().toDateString() && cached.week) {
+  1016→        setWeek(cached.week);
+  1017→        return;
+  1018→      }
+  1019→    } catch {}
+  1020→    generateWeek();
+  1021→  }, [generateWeek]);
+  1022→
+  1023→  return (
+  1024→    <div className="space-y-5">
+  1025→      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+  1026→        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+  1027→          <div>
+  1028→            <h2 className="text-lg font-bold text-white/90 flex items-center gap-2">
+  1029→              <Calendar className="h-5 w-5 text-amber-400" />Planificador Semanal
+  1030→            </h2>
+  1031→            <p className="text-xs text-white/30 mt-0.5">Tu semana de estilo, planificada inteligentemente</p>
+  1032→          </div>
+  1033→          <div className="flex items-center gap-2">
+  1034→            <div className="flex gap-1">
+  1035→              {CLIMA_OPTS.map(opt => (
+  1036→                <button key={opt.value} onClick={() => setWeeklyClima(weeklyClima === opt.value ? null : opt.value)}
+  1037→                  className={`h-8 px-2.5 rounded-lg border text-[10px] font-medium flex items-center gap-1.5 transition-all ${
+  1038→                    weeklyClima === opt.value ? 'bg-white/[0.08] border-white/[0.12] text-white' : 'border-white/[0.04] text-white/25 hover:text-white/50 hover:bg-white/[0.03]'
+  1039→                  }`}>
+  1040→                  {opt.icon}{LABELS.clima[opt.value]}
+  1041→                </button>
+  1042→              ))}
+  1043→            </div>
+  1044→            <Button onClick={generateWeek} disabled={loading} size="sm" className="h-8 bg-amber-600/80 hover:bg-amber-500 rounded-lg text-xs gap-1.5 border border-amber-500/20">
+  1045→              {loading ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}Regenerar
+  1046→            </Button>
+  1047→          </div>
+  1048→        </div>
+  1049→      </motion.div>
+  1050→
+  1051→      {loading && <div className="space-y-3">{Array.from({ length: 7 }).map((_, i) => <Skeleton key={i} className="h-32 bg-white/[0.02] rounded-2xl" />)}</div>}
+  1052→
+  1053→      {!loading && week.length > 0 && (
+  1054→        <motion.div className="space-y-3" variants={stagger} initial="initial" animate="animate">
+  1055→          {week.map((day, i) => (
+  1056→            <motion.div key={day.day} variants={fadeUp}>
+  1057→              <div className={`weekly-card-shine bg-white/[0.02] border rounded-2xl overflow-hidden transition-all duration-300 hover:bg-white/[0.03] backdrop-blur-sm ${
+  1058→                i === 0 ? 'border-amber-500/20 shadow-[0_0_20px_-5px_rgba(245,158,11,0.06)]' : 'border-white/[0.04] hover:border-white/[0.07]'
+  1059→              }`}>
+  1060→                <div className="flex flex-col sm:flex-row">
+  1061→                  {/* Day column */}
+  1062→                  <div className={`sm:w-40 flex-shrink-0 p-4 sm:p-5 flex flex-col justify-center items-center sm:items-start border-b sm:border-b-0 sm:border-r border-white/[0.04] ${i === 0 ? 'bg-amber-500/[0.03]' : ''}`}>
+  1063→                    <div className="flex items-center gap-2">
+  1064→                      {i === 0 && <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />}
+  1065→                      <span className={`text-sm font-bold ${i === 0 ? 'text-amber-300' : 'text-white/60'}`}>{day.dayLabel}</span>
+  1066→                    </div>
+  1067→                    <span className="text-[10px] text-white/25 mt-0.5 font-mono">{day.dateStr}</span>
+  1068→                    <div className="flex gap-1 mt-2">
+  1069→                      {day.outfit.estilo.slice(0, 2).map(e => <Badge key={e} className={`text-[8px] px-1.5 py-0 border-0 ${i === 0 ? 'bg-amber-500/10 text-amber-400/70' : 'bg-white/[0.03] text-white/20'}`}>{LABELS.estilo[e as keyof typeof LABELS.estilo]}</Badge>)}
+  1070→                    </div>
+  1071→                  </div>
+  1072→                  {/* Outfit column */}
+  1073→                  <div className="flex-1 p-4 sm:p-5 flex items-center gap-4">
+  1074→                    <div className="flex -space-x-1 flex-shrink-0">
+  1075→                      {day.garments.slice(0, 4).map(g => (
+  1076→                        <div key={g.id} className="w-10 h-10 rounded-xl border border-white/[0.06] bg-white/[0.02] flex items-center justify-center text-lg shadow-sm" title={g.nombre}>
+  1077→                          {g.emoji}
+  1078→                        </div>
+  1079→                      ))}
+  1080→                      {day.garments.length > 4 && <div className="w-10 h-10 rounded-xl border border-white/[0.04] bg-white/[0.02] flex items-center justify-center text-[10px] text-white/25 font-bold">+{day.garments.length - 4}</div>}
+  1081→                    </div>
+  1082→                    <div className="flex-1 min-w-0">
+  1083→                      <h3 className={`text-sm font-semibold truncate ${i === 0 ? 'text-amber-200' : 'text-white/75 group-hover:text-white/90'}`}>{day.outfit.nombre}</h3>
+  1084→                      <p className="text-[11px] text-white/25 mt-0.5 line-clamp-1">{day.outfit.descripcion}</p>
+  1085→                      <div className="flex items-center gap-2 mt-2">
+  1086→                        <div className="flex -space-x-1">{day.outfit.paletaColores.slice(0, 5).map((c, j) => <div key={j} className="w-4 h-4 rounded-full border border-[#0a0a0b]" style={{ backgroundColor: c }} />)}</div>
+  1087→                        <span className={`text-[10px] font-bold tabular-nums ${day.score >= 80 ? 'text-emerald-400/60' : 'text-white/15'}`}>{Math.round(day.score)}%</span>
+  1088→                      </div>
+  1089→                    </div>
+  1090→                    <div className="flex items-center gap-1 flex-shrink-0">
+  1091→                      <button onClick={() => { const s: Suggestion = { outfit: day.outfit, garments: day.garments, score: day.score, matchDetails: { ocasion: true, momento: true, clima: true, estilo: true } }; onViewDetail(s); }} className="h-8 w-8 rounded-lg flex items-center justify-center text-white/15 hover:text-amber-400 hover:bg-amber-500/5 transition-all">
+  1092→                        <Eye className="h-3.5 w-3.5" />
+  1093→                      </button>
+  1094→                      <button onClick={() => onToggleFav(day.outfit.id)} className={`h-8 w-8 rounded-lg flex items-center justify-center transition-all ${isFav(day.outfit.id) ? 'text-rose-400' : 'text-white/10 hover:text-rose-400'}`}>
+  1095→                        <Heart className={`h-3.5 w-3.5 ${isFav(day.outfit.id) ? 'fill-rose-400' : ''}`} />
+  1096→                      </button>
+  1097→                    </div>
+  1098→                  </div>
+  1099→                </div>
+  1100→              </div>
+  1101→            </motion.div>
+  1102→          ))}
+  1103→        </motion.div>
+  1104→      )}
+  1105→    </div>
+  1106→  );
+  1107→}
+  1108→
+  1109→/* ============================================================
+  1110→   WARDROBE SECTION
+  1111→   ============================================================ */
+  1112→function WardrobeSection() {
+  1113→  const [items, setItems] = useState<Array<Record<string, unknown>>>([]);
+  1114→  const [allItems, setAllItems] = useState<Array<Record<string, unknown>>>([]);
+  1115→  const [category, setCategory] = useState<string | null>(null);
+  1116→  const [selectedGarment, setSelectedGarment] = useState<Record<string, unknown> | null>(null);
+  1117→  const [relatedOutfits, setRelatedOutfits] = useState<OutfitBasic[]>([]);
+  1118→
+  1119→  useEffect(() => {
+  1120→    let cancelled = false;
+  1121→    (async () => {
+  1122→      try {
+  1123→        const res = await fetch('/api/wardrobe');
+  1124→        const data = await res.json();
+  1125→        if (!cancelled) { setAllItems(data.prendas || []); setItems(data.prendas || []); }
+  1126→      } catch (e) { console.error(e); }
+  1127→    })();
+  1128→    return () => { cancelled = true; };
+  1129→  }, []);
+  1130→
+  1131→  const handleCategory = (cat: string | null) => {
+  1132→    setCategory(cat); setSelectedGarment(null);
+  1133→    if (cat) setItems(allItems.filter((i) => i.categoria === cat));
+  1134→    else setItems(allItems);
+  1135→  };
+  1136→
+  1137→  const handleGarmentClick = useCallback(async (item: Record<string, unknown>) => {
+  1138→    setSelectedGarment(item);
+  1139→    try {
+  1140→      const res = await fetch('/api/outfits?limit=130');
+  1141→      const data = await res.json();
+  1142→      const allOutfits: OutfitBasic[] = data.outfits || [];
+  1143→      const itemId = item.id as string;
+  1144→      const related = allOutfits.filter(o => {
+  1145→        const ids = [o.prendaSuperior, o.pantalon, o.calzado, o.corbata, o.abrigo, ...(o.accesorios || [])].filter(Boolean);
+  1146→        return ids.includes(itemId);
+  1147→      });
+  1148→      setRelatedOutfits(related);
+  1149→    } catch (e) { console.error(e); }
+  1150→  }, []);
+  1151→
+  1152→  const getCount = (catId: string | null) => {
+  1153→    if (!catId) return allItems.length;
+  1154→    return allItems.filter((i) => i.categoria === catId).length;
+  1155→  };
+  1156→
+  1157→  return (
+  1158→    <div className="space-y-5">
+  1159→      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+  1160→        <div className="flex items-center justify-between">
+  1161→          <div>
+  1162→            <h2 className="text-lg font-bold text-white/90">Inventario de Guardarropa</h2>
+  1163→            <p className="text-xs text-white/25 mt-0.5">{allItems.length} prendas en 8 categorias</p>
+  1164→          </div>
+  1165→          <div className="text-[10px] text-white/15 font-mono bg-white/[0.02] px-2.5 py-1 rounded-lg border border-white/[0.04]">{items.length} prendas</div>
+  1166→        </div>
+  1167→        <div className="flex flex-wrap gap-1.5 mt-4">
+  1168→          {CATEGORIES.map(cat => {
+  1169→            const count = getCount(cat.id);
+  1170→            const isActive = category === cat.id;
+  1171→            return (
+  1172→              <Button key={cat.id || 'all'} variant="outline" size="sm"
+  1173→                className={`rounded-xl text-xs h-9 px-3 gap-1.5 transition-all duration-200 border ${isActive ? 'bg-white/[0.06] border-white/[0.12] text-white shadow-sm' : 'border-white/[0.03] text-white/30 hover:text-white/55 hover:bg-white/[0.03]'}`}
+  1174→                onClick={() => handleCategory(cat.id)}>
+  1175→                <span>{cat.emoji}</span><span>{cat.label}</span>
+  1176→                <Badge variant="secondary" className={`h-4 min-w-4 px-1 text-[9px] font-bold rounded ${isActive ? 'bg-white/[0.08] text-white/60' : 'bg-white/[0.02] text-white/15'}`}>{count}</Badge>
+  1177→              </Button>
+  1178→            );
+  1179→          })}
+  1180→        </div>
+  1181→      </motion.div>
+  1182→      <motion.div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3" variants={stagger} initial="initial" animate="animate">
+  1183→        {items.map(item => (
+  1184→          <motion.div key={item.id as string} variants={fadeUp} layout>
+  1185→            <div onClick={() => handleGarmentClick(item)}
+  1186→              className={`group bg-white/[0.015] border rounded-2xl p-4 transition-all duration-300 cursor-pointer hover:bg-white/[0.04] ${selectedGarment?.id === item.id ? 'border-amber-500/25 shadow-[0_0_20px_-5px_rgba(245,158,11,0.05)]' : 'border-white/[0.03] hover:border-white/[0.07]'}`}>
+  1187→              <div className="flex items-start justify-between mb-3">
+  1188→                <span className="text-3xl drop-shadow-lg transition-transform group-hover:scale-110 duration-300">{item.emoji as string}</span>
+  1189→                <div className="flex flex-col items-end gap-1.5">
+  1190→                  <div className="w-7 h-7 rounded-full border-2 border-white/[0.06] shadow-inner transition-transform group-hover:scale-110 duration-300" style={{ backgroundColor: item.colorHex as string }} />
+  1191→                  <span className="text-[9px] text-white/10 font-mono">{item.id as string}</span>
+  1192→                </div>
+  1193→              </div>
+  1194→              <h3 className="text-[11px] font-medium text-white/65 line-clamp-2 leading-relaxed group-hover:text-white/80 transition-colors">{item.nombre as string}</h3>
+  1195→              {(item.notas as string) && <p className="text-[9px] text-white/12 mt-1 line-clamp-1 italic">{item.notas as string}</p>}
+  1196→              <div className="mt-2.5 flex items-center justify-between">
+  1197→                <span className="text-[10px] text-white/20 font-medium">{item.color as string}</span>
+  1198→                <div className="flex gap-[3px]">
+  1199→                  {Array.from({ length: 5 }).map((_, j) => (
+  1200→                    <div key={j} className={`w-[3px] h-3.5 rounded-full transition-all duration-300 ${j < (item.formalidad as number) ? 'bg-amber-500/40' : 'bg-white/[0.03]'}`} />
+  1201→                  ))}
+  1202→                </div>
+  1203→              </div>
+  1204→            </div>
+  1205→          </motion.div>
+  1206→        ))}
+  1207→      </motion.div>
+  1208→      <AnimatePresence>
+  1209→        {selectedGarment && (
+  1210→          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="border-t border-white/[0.04] pt-5">
+  1211→            <h3 className="text-sm font-semibold text-white/75 mb-1">Outfits con esta prenda</h3>
+  1212→            <p className="text-[11px] text-white/25 mb-3">{relatedOutfits.length} outfits utilizan esta prenda</p>
+  1213→            <div className="flex flex-wrap gap-2">
+  1214→              {relatedOutfits.slice(0, 12).map(o => (
+  1215→                <div key={o.id} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.025] border border-white/[0.04] hover:bg-white/[0.04] transition-colors">
+  1216→                  <div className="flex -space-x-1">{o.paletaColores.slice(0, 3).map((c, i) => <div key={i} className="w-3.5 h-3.5 rounded-full border border-[#0a0a0b]" style={{ backgroundColor: c }} />)}</div>
+  1217→                  <span className="text-[10px] text-white/40 font-medium">{o.nombre}</span>
+  1218→                </div>
+  1219→              ))}
+  1220→            </div>
+  1221→          </motion.div>
+  1222→        )}
+  1223→      </AnimatePresence>
+  1224→    </div>
+  1225→  );
+  1226→}
+  1227→
+  1228→/* ============================================================
+  1229→   EXPLORE SECTION
+  1230→   ============================================================ */
+  1231→function ExploreSection({ favs, isFav, onToggleFav, onViewDetail }: { favs: string[]; isFav: (id: string) => boolean; onToggleFav: (id: string) => void; onViewDetail: (s: Suggestion) => void }) {
+  1232→  const [allOutfits, setAllOutfits] = useState<OutfitBasic[]>([]);
+  1233→  const [exploreLoading, setExploreLoading] = useState(false);
+  1234→  const [filterOcasion, setFilterOcasion] = useState<string | null>(null);
+  1235→  const [filterEstilo, setFilterEstilo] = useState<string | null>(null);
+  1236→  const [searchExplore, setSearchExplore] = useState('');
+  1237→  const [expandedId, setExpandedId] = useState<string | null>(null);
+  1238→  const [counts, setCounts] = useState<Record<string, number>>({});
+  1239→
+  1240→  const loadAll = useCallback(async () => {
+  1241→    setExploreLoading(true);
+  1242→    try {
+  1243→      const res = await fetch('/api/outfits?limit=130');
+  1244→      const data = await res.json();
+  1245→      const outfits: OutfitBasic[] = data.outfits || [];
+  1246→      setAllOutfits(outfits);
+  1247→      const c: Record<string, number> = { total: outfits.length };
+  1248→      outfits.forEach((o) => { o.ocasion.forEach((oc) => { c[oc] = (c[oc] || 0) + 1; }); o.estilo.forEach((es) => { c[es] = (c[es] || 0) + 1; }); });
+  1249→      setCounts(c);
+  1250→    } catch (e) { console.error(e); }
+  1251→    finally { setExploreLoading(false); }
+  1252→  }, []);
+  1253→
+  1254→  useEffect(() => { loadAll(); }, [loadAll]);
+  1255→
+  1256→  const filtered = useMemo(() => {
+  1257→    let result = allOutfits;
+  1258→    if (filterOcasion) result = result.filter(o => o.ocasion.includes(filterOcasion));
+  1259→    if (filterEstilo) result = result.filter(o => o.estilo.includes(filterEstilo));
+  1260→    if (searchExplore.trim()) { const q = searchExplore.toLowerCase(); result = result.filter(o => o.nombre.toLowerCase().includes(q) || o.descripcion.toLowerCase().includes(q)); }
+  1261→    return result;
+  1262→  }, [allOutfits, filterOcasion, filterEstilo, searchExplore]);
+  1263→
+  1264→  return (
+  1265→    <div className="space-y-5">
+  1266→      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+  1267→        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+  1268→          <div>
+  1269→            <h2 className="text-lg font-bold text-white/90 flex items-center gap-2"><Compass className="h-5 w-5 text-amber-400" />Explorar Combinaciones</h2>
+  1270→            <p className="text-xs text-white/25 mt-0.5">{filtered.length} de {counts.total || 0} outfits</p>
+  1271→          </div>
+  1272→          <div className="relative w-full sm:w-64">
+  1273→            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/15" />
+  1274→            <Input placeholder="Buscar outfit..." value={searchExplore} onChange={e => setSearchExplore(e.target.value)}
+  1275→              className="h-8 pl-8 pr-8 text-xs bg-white/[0.025] border-white/[0.05] rounded-xl text-white/65 placeholder:text-white/15 focus:border-amber-500/25" />
+  1276→            {searchExplore && <button onClick={() => setSearchExplore('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-white/15 hover:text-white/40"><X className="h-3 w-3" /></button>}
+  1277→          </div>
+  1278→        </div>
+  1279→        <div className="flex flex-wrap gap-1.5 mt-4">
+  1280→          {[{ value: null, label: 'Todas' }, { value: 'oficina', label: 'Oficina' }, { value: 'oficina_casual', label: 'Casual' }, { value: 'salida', label: 'Salida' }, { value: 'after_office', label: 'After Office' }, { value: 'fin_de_semana', label: 'Fin de Semana' }].map(v => {
+  1281→            const isActive = filterOcasion === v.value;
+  1282→            const count = v.value ? (counts[v.value] || 0) : (counts.total || 0);
+  1283→            return (
+  1284→              <Button key={v.value || 'all'} size="sm"
+  1285→                className={`rounded-xl text-[11px] h-8 px-3 gap-1.5 transition-all duration-200 border ${isActive ? 'bg-white/[0.06] border-white/[0.12] text-white shadow-sm' : 'border-white/[0.03] text-white/30 hover:text-white/55 hover:bg-white/[0.03]'}`}
+  1286→                onClick={() => setFilterOcasion(v.value)}>
+  1287→                {v.label}<span className={`text-[9px] font-bold px-1.5 py-0 rounded-md ${isActive ? 'bg-white/[0.08] text-white/60' : 'bg-white/[0.02] text-white/15'}`}>{count}</span>
+  1288→              </Button>
+  1289→            );
+  1290→          })}
+  1291→        </div>
+  1292→        <div className="flex flex-wrap gap-1.5 mt-2">
+  1293→          {ESTILO_OPTS.map(opt => {
+  1294→            const isActive = filterEstilo === opt.value;
+  1295→            return (
+  1296→              <button key={opt.value} onClick={() => setFilterEstilo(isActive ? null : opt.value)}
+  1297→                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[10px] font-medium transition-all duration-200 ${
+  1298→                  isActive ? `border-white/[0.12] bg-white/[0.06] ${opt.color}` : 'border-white/[0.03] text-white/25 hover:text-white/45 hover:bg-white/[0.02]'
+  1299→                }`}>
+  1300→                {opt.icon}{opt.label}
+  1301→              </button>
+  1302→            );
+  1303→          })}
+  1304→        </div>
+  1305→      </motion.div>
+  1306→      {exploreLoading ? (
+  1307→        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-28 bg-white/[0.02] rounded-xl border border-white/[0.03]" />)}</div>
+  1308→      ) : (
+  1309→        <motion.div className="grid grid-cols-1 md:grid-cols-2 gap-3" variants={stagger} initial="initial" animate="animate">
+  1310→          {filtered.map(outfit => (
+  1311→            <motion.div key={outfit.id} variants={fadeUp} layout>
+  1312→              <Card className={`weekly-card-shine bg-white/[0.02] border rounded-xl overflow-hidden cursor-pointer transition-all duration-300 group backdrop-blur-sm ${expandedId === outfit.id ? 'border-amber-500/20 shadow-[0_0_20px_-5px_rgba(245,158,11,0.05)]' : 'border-white/[0.04] hover:border-white/[0.07] hover:bg-white/[0.025]'}`}
+  1313→                onClick={() => setExpandedId(expandedId === outfit.id ? null : outfit.id)}>
+  1314→                <CardContent className="p-4">
+  1315→                  <div className="flex items-start justify-between gap-3">
+  1316→                    <div className="flex-1 min-w-0">
+  1317→                      <h3 className="text-xs font-semibold text-white/75 group-hover:text-amber-200 transition-colors truncate">{outfit.nombre}</h3>
+  1318→                      <p className="text-[10px] text-white/25 line-clamp-2 mt-0.5 leading-relaxed">{outfit.descripcion}</p>
+  1319→                    </div>
+  1320→                    <div className="flex items-center gap-1 flex-shrink-0">
+  1321→                      <button onClick={(e) => { e.stopPropagation(); onToggleFav(outfit.id); }} className={`h-6 w-6 flex items-center justify-center rounded-md transition-all ${isFav(outfit.id) ? 'text-rose-400' : 'text-white/[0.06] hover:text-rose-400'}`}>
+  1322→                        <Heart className={`h-3 w-3 ${isFav(outfit.id) ? 'fill-rose-400' : ''}`} />
+  1323→                      </button>
+  1324→                      <ChevronRight className={`h-4 w-4 text-white/10 transition-transform duration-300 ${expandedId === outfit.id ? 'rotate-90 text-amber-400' : ''}`} />
+  1325→                    </div>
+  1326→                  </div>
+  1327→                  <div className="flex items-center gap-1.5 mt-3">
+  1328→                    <div className="flex -space-x-1">
+  1329→                      {outfit.paletaColores.slice(0, 4).map((c, i) => <div key={i} className="w-4 h-4 rounded-full border border-[#0a0a0b]" style={{ backgroundColor: c }} />)}
+  1330→                      {outfit.paletaColores.length > 4 && <div className="w-4 h-4 rounded-full bg-white/[0.04] border border-[#0a0a0b] flex items-center justify-center text-[7px] text-white/25 font-bold">+{outfit.paletaColores.length - 4}</div>}
+  1331→                    </div>
+  1332→                    <div className="flex-1" />
+  1333→                    <div className="flex gap-1">
+  1334→                      {outfit.estilo.slice(0, 2).map((e) => <Badge key={e} className="bg-white/[0.025] text-white/20 text-[8px] px-1.5 py-0 border-0 font-medium">{LABELS.estilo[e as keyof typeof LABELS.estilo]}</Badge>)}
+  1335→                    </div>
+  1336→                  </div>
+  1337→                  {expandedId === outfit.id && (
+  1338→                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-3 pt-3 border-t border-white/[0.04] space-y-2">
+  1339→                      <div className="flex flex-wrap gap-1">
+  1340→                        {outfit.ocasion.map((o) => <Badge key={o} className="bg-emerald-500/6 text-emerald-400/70 text-[9px] px-1.5 py-0 border-emerald-500/8 font-medium">{LABELS.ocasion[o as keyof typeof LABELS.ocasion]}</Badge>)}
+  1341→                        {outfit.momento.map((m) => <Badge key={m} className="bg-sky-500/6 text-sky-400/70 text-[9px] px-1.5 py-0 border-sky-500/8 font-medium">{LABELS.momento[m as keyof typeof LABELS.momento]}</Badge>)}
+  1342→                        {outfit.clima.map((c) => <Badge key={c} className="bg-orange-500/6 text-orange-400/70 text-[9px] px-1.5 py-0 border-orange-500/8 font-medium">{LABELS.clima[c as keyof typeof LABELS.clima]}</Badge>)}
+  1343→                      </div>
+  1344→                      <Button variant="outline" size="sm" className="w-full rounded-xl border-white/[0.05] text-white/35 hover:text-amber-400 hover:border-amber-500/20 text-[10px] gap-1.5 mt-2" onClick={(e) => {
+  1345→                        e.stopPropagation();
+  1346→                        fetch(`/api/outfits/${outfit.id}`).then(r => r.json()).then(data => { if (data.success) onViewDetail({ outfit: data.outfit, garments: data.garments, score: 0, matchDetails: { ocasion: true, momento: true, clima: true, estilo: true } }); });
+  1347→                      }}>
+  1348→                        <Eye className="h-3 w-3" /> Ver Detalle
+  1349→                      </Button>
+  1350→                    </motion.div>
+  1351→                  )}
+  1352→                </CardContent>
+  1353→              </Card>
+  1354→            </motion.div>
+  1355→          ))}
+  1356→        </motion.div>
+  1357→      )}
+  1358→    </div>
+  1359→  );
+  1360→}
+  1361→
+  1362→/* ============================================================
+  1363→   FAVORITES SECTION (Fixed: uses /api/outfits instead of /api/suggest)
+  1364→   ============================================================ */
+  1365→function FavoritesSection({ favs, isFav, onToggleFav, onViewDetail }: { favs: string[]; isFav: (id: string) => boolean; onToggleFav: (id: string) => void; onViewDetail: (s: Suggestion) => void }) {
+  1366→  const [items, setItems] = useState<Suggestion[]>([]);
+  1367→  const [loading, setLoading] = useState(false);
+  1368→
+  1369→  useEffect(() => {
+  1370→    if (favs.length === 0) { setItems([]); return; }
+  1371→    setLoading(true);
+  1372→    (async () => {
+  1373→      try {
+  1374→        const res = await fetch('/api/outfits?limit=130');
+  1375→        const data = await res.json();
+  1376→        const allOutfits: OutfitBasic[] = data.outfits || [];
+  1377→        const favOutfits = allOutfits.filter(o => favs.includes(o.id));
+  1378→        const withDetails = await Promise.all(favOutfits.map(async (o) => {
+  1379→          try {
+  1380→            const dRes = await fetch(`/api/outfits/${o.id}`);
+  1381→            const dData = await dRes.json();
+  1382→            if (dData.success) return { outfit: dData.outfit, garments: dData.garments, score: 0, matchDetails: { ocasion: true, momento: true, clima: true, estilo: true } } as Suggestion;
+  1383→          } catch {}
+  1384→          return { outfit: o, garments: [], score: 0, matchDetails: { ocasion: true, momento: true, clima: true, estilo: true } } as Suggestion;
+  1385→        }));
+  1386→        setItems(withDetails);
+  1387→      } catch (e) { console.error(e); }
+  1388→      finally { setLoading(false); }
+  1389→    })();
+  1390→  }, [favs]);
+  1391→
+  1392→  if (favs.length === 0) {
+  1393→    return (
+  1394→      <div className="flex flex-col items-center justify-center h-[50vh] text-center">
+  1395→        <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', duration: 0.6 }}>
+  1396→          <div className="w-20 h-20 rounded-3xl bg-rose-500/[0.04] border border-rose-500/[0.08] flex items-center justify-center mb-6 animate-float">
+  1397→            <Heart className="h-8 w-8 text-rose-500/15" />
+  1398→          </div>
+  1399→          <h2 className="text-xl font-semibold text-white/40 mb-2">Sin favoritos aun</h2>
+  1400→          <p className="text-sm text-white/20 max-w-sm">Haz clic en el corazon de cualquier outfit para guardarlo aqui.</p>
+  1401→        </motion.div>
+  1402→      </div>
+  1403→    );
+  1404→  }
+  1405→
+  1406→  return (
+  1407→    <div className="space-y-4">
+  1408→      <div className="flex items-center justify-between">
+  1409→        <div>
+  1410→          <h2 className="text-lg font-semibold text-white/90 flex items-center gap-2"><Heart className="h-5 w-5 text-rose-400" />Mis Favoritos</h2>
+  1411→          <p className="text-xs text-white/30">{items.length} outfits guardados</p>
+  1412→        </div>
+  1413→      </div>
+  1414→      {loading ? (
+  1415→        <div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-32 bg-white/[0.02] rounded-2xl" />)}</div>
+  1416→      ) : (
+  1417→        <motion.div className="space-y-3" variants={stagger} initial="initial" animate="animate">
+  1418→          {items.map(s => (
+  1419→            <motion.div key={s.outfit.id} variants={fadeUp}>
+  1420→              <Card className="weekly-card-shine bg-white/[0.02] border border-white/[0.04] rounded-2xl p-4 hover:bg-white/[0.035] transition-all duration-300 group backdrop-blur-sm cursor-pointer"
+  1421→                onClick={() => onViewDetail(s)}>
+  1422→                <div className="flex items-start gap-4">
+  1423→                  <div className="flex -space-x-1 flex-shrink-0 pt-1">
+  1424→                    {s.outfit.paletaColores.slice(0, 4).map((c, i) => (
+  1425→                      <div key={i} className="w-5 h-5 rounded-full border border-[#0a0a0b]" style={{ backgroundColor: c }} />
+  1426→                    ))}
+  1427→                  </div>
+  1428→                  <div className="flex-1 min-w-0">
+  1429→                    <h3 className="text-sm font-semibold text-white/75 group-hover:text-amber-300 transition-colors">{s.outfit.nombre}</h3>
+  1430→                    <p className="text-xs text-white/30 mt-1 line-clamp-1 leading-relaxed">{s.outfit.descripcion}</p>
+  1431→                    <div className="flex flex-wrap gap-1 mt-2">
+  1432→                      {s.outfit.estilo.map((e) => <Badge key={e} className="bg-violet-500/6 text-violet-400/70 text-[9px] px-1.5 py-0 border-violet-500/8 font-medium">{LABELS.estilo[e as keyof typeof LABELS.estilo]}</Badge>)}
+  1433→                      {s.outfit.clima.map((c) => <Badge key={c} className="bg-orange-500/6 text-orange-400/70 text-[9px] px-1.5 py-0 border-orange-500/8 font-medium">{LABELS.clima[c as keyof typeof LABELS.clima]}</Badge>)}
+  1434→                    </div>
+  1435→                  </div>
+  1436→                  <button onClick={(e) => { e.stopPropagation(); onToggleFav(s.outfit.id); }} className={`h-8 w-8 flex items-center justify-center rounded-lg flex-shrink-0 transition-all ${isFav(s.outfit.id) ? 'text-rose-400' : 'text-white/[0.06] hover:text-rose-400'}`}>
+  1437→                    <Heart className={`h-4 w-4 ${isFav(s.outfit.id) ? 'fill-rose-400' : ''}`} />
+  1438→                  </button>
+  1439→                </div>
+  1440→              </Card>
+  1441→            </motion.div>
+  1442→          ))}
+  1443→        </motion.div>
+  1444→      )}
+  1445→    </div>
+  1446→  );
+  1447→}
+  1448→
+  1449→/* ============================================================
+  1450→   STATS SECTION
+  1451→   ============================================================ */
+  1452→function StatsSection() {
+  1453→  const [allOutfits, setAllOutfits] = useState<OutfitBasic[]>([]);
+  1454→  const [allGarments, setAllGarments] = useState<Array<Record<string, unknown>>>([]);
+  1455→  const [loading, setLoading] = useState(false);
+  1456→
+  1457→  useEffect(() => {
+  1458→    (async () => {
+  1459→      setLoading(true);
+  1460→      try {
+  1461→        const [oRes, gRes] = await Promise.all([fetch('/api/outfits?limit=130'), fetch('/api/wardrobe')]);
+  1462→        const [oData, gData] = await Promise.all([oRes.json(), gRes.json()]);
+  1463→        setAllOutfits(oData.outfits || []);
+  1464→        setAllGarments(gData.prendas || []);
+  1465→      } catch (e) { console.error(e); }
+  1466→      finally { setLoading(false); }
+  1467→    })();
+  1468→  }, []);
+  1469→
+  1470→  const stats = useMemo(() => {
+  1471→    const ocasionCount: Record<string, number> = {};
+  1472→    const estiloCount: Record<string, number> = {};
+  1473→    const momentoCount: Record<string, number> = {};
+  1474→    const climaCount: Record<string, number> = {};
+  1475→    const colorCount: Record<string, number> = {};
+  1476→    const garmentUsage: Record<string, number> = {};
+  1477→
+  1478→    allOutfits.forEach(o => {
+  1479→      o.ocasion.forEach(oc => { ocasionCount[oc] = (ocasionCount[oc] || 0) + 1; });
+  1480→      o.estilo.forEach(es => { estiloCount[es] = (estiloCount[es] || 0) + 1; });
+  1481→      o.momento.forEach(m => { momentoCount[m] = (momentoCount[m] || 0) + 1; });
+  1482→      o.clima.forEach(c => { climaCount[c] = (climaCount[c] || 0) + 1; });
+  1483→      o.paletaColores.forEach(c => { colorCount[c] = (colorCount[c] || 0) + 1; });
+  1484→      const ids = [o.prendaSuperior, o.pantalon, o.calzado, o.corbata, o.abrigo, ...(o.accesorios || [])].filter(Boolean);
+  1485→      ids.forEach(id => { garmentUsage[id] = (garmentUsage[id] || 0) + 1; });
+  1486→    });
+  1487→
+  1488→    const topColors = Object.entries(colorCount).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  1489→    const topGarments = Object.entries(garmentUsage).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  1490→    const maxOcasion = Math.max(...Object.values(ocasionCount), 1);
+  1491→    const maxEstilo = Math.max(...Object.values(estiloCount), 1);
+  1492→    const maxMomento = Math.max(...Object.values(momentoCount), 1);
+  1493→    const maxClima = Math.max(...Object.values(climaCount), 1);
+  1494→
+  1495→    // Average harmony
+  1496→    const avgHarmony = allOutfits.reduce((sum, o) => sum + getHarmonyScore(o.paletaColores).score, 0) / Math.max(allOutfits.length, 1);
+  1497→
+  1498→    return { ocasionCount, estiloCount, momentoCount, climaCount, colorCount, topColors, topGarments, maxOcasion, maxEstilo, maxMomento, maxClima, avgHarmony };
+  1499→  }, [allOutfits]);
+  1500→
+  1501→  if (loading) {
+  1502→    return <div className="space-y-4">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-40 bg-white/[0.02] rounded-2xl" />)}</div>;
+  1503→  }
+  1504→
+  1505→  const topGarmentNames = stats.topGarments.map(([id]) => {
+  1506→    const g = allGarments.find(x => x.id === id);
+  1507→    return g ? { id, nombre: g.nombre as string, emoji: g.emoji as string, colorHex: g.colorHex as string, count: stats.topGarments.find(x => x[0] === id)?.[1] || 0 } : { id, nombre: id, emoji: '?', colorHex: '#666', count: stats.topGarments.find(x => x[0] === id)?.[1] || 0 };
+  1508→  });
+  1509→
+  1510→  return (
+  1511→    <div className="space-y-6">
+  1512→      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+  1513→        <h2 className="text-lg font-bold text-white/90 flex items-center gap-2"><BarChart3 className="h-5 w-5 text-emerald-400" />Estadisticas del Guardarropa</h2>
+  1514→        <p className="text-xs text-white/25 mt-0.5">Analisis de tus 130 combinaciones y 46 prendas</p>
+  1515→      </motion.div>
+  1516→
+  1517→      {/* Summary cards */}
+  1518→      <motion.div className="grid grid-cols-2 sm:grid-cols-5 gap-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+  1519→        {[
+  1520→          { label: 'Total Outfits', value: allOutfits.length, icon: <ShirtIcon className="h-4 w-4" />, color: 'text-amber-400', bg: 'bg-amber-500/[0.06] border-amber-500/10' },
+  1521→          { label: 'Total Prendas', value: allGarments.length, icon: <Layers className="h-4 w-4" />, color: 'text-emerald-400', bg: 'bg-emerald-500/[0.06] border-emerald-500/10' },
+  1522→          { label: 'Estilos', value: Object.keys(stats.estiloCount).length, icon: <Palette className="h-4 w-4" />, color: 'text-violet-400', bg: 'bg-violet-500/[0.06] border-violet-500/10' },
+  1523→          { label: 'Colores Unicos', value: Object.keys(stats.colorCount).length, icon: <Gem className="h-4 w-4" />, color: 'text-sky-400', bg: 'bg-sky-500/[0.06] border-sky-500/10' },
+  1524→          { label: 'Armonia Prom.', value: Math.round(stats.avgHarmony), icon: <Star className="h-4 w-4" />, color: stats.avgHarmony >= 70 ? 'text-emerald-400' : 'text-amber-400', bg: stats.avgHarmony >= 70 ? 'bg-emerald-500/[0.06] border-emerald-500/10' : 'bg-amber-500/[0.06] border-amber-500/10' },
+  1525→        ].map(s => (
+  1526→          <Card key={s.label} className={`${s.bg} border rounded-xl p-4 backdrop-blur-sm`}>
+  1527→            <div className={`${s.color} mb-2`}>{s.icon}</div>
+  1528→            <div className={`text-2xl font-bold ${s.color} tabular-nums`}>{s.value}</div>
+  1529→            <div className="text-[10px] text-white/30 font-medium mt-0.5">{s.label}</div>
+  1530→          </Card>
+  1531→        ))}
+  1532→      </motion.div>
+  1533→
+  1534→      {/* Distribution charts */}
+  1535→      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+  1536→        {[
+  1537→          { title: 'Por Ocasion', data: stats.ocasionCount, max: stats.maxOcasion, icon: <MapPin className="h-3.5 w-3.5 text-emerald-400" />, gradient: 'from-emerald-500 to-emerald-400', labelKey: 'ocasion' as const },
+  1538→          { title: 'Por Estilo', data: stats.estiloCount, max: stats.maxEstilo, icon: <Crown className="h-3.5 w-3.5 text-violet-400" />, gradient: 'from-violet-500 to-purple-400', labelKey: 'estilo' as const },
+  1539→          { title: 'Por Momento', data: stats.momentoCount, max: stats.maxMomento, icon: <Clock className="h-3.5 w-3.5 text-sky-400" />, gradient: 'from-sky-500 to-cyan-400', labelKey: 'momento' as const },
+  1540→          { title: 'Por Clima', data: stats.climaCount, max: stats.maxClima, icon: <Flame className="h-3.5 w-3.5 text-orange-400" />, gradient: 'from-orange-500 to-amber-400', labelKey: 'clima' as const },
+  1541→        ].map((chart, i) => (
+  1542→          <motion.div key={chart.title} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.1 }}>
+  1543→            <Card className="bg-white/[0.015] border-white/[0.04] rounded-2xl p-5 backdrop-blur-sm">
+  1544→              <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">{chart.icon}{chart.title}</h3>
+  1545→              <div className="space-y-3">
+  1546→                {Object.entries(chart.data).sort((a, b) => b[1] - a[1]).map(([key, count]) => (
+  1547→                  <div key={key}>
+  1548→                    <div className="flex items-center justify-between mb-1">
+  1549→                      <span className="text-[11px] text-white/50 font-medium">{LABELS[chart.labelKey][key as keyof typeof LABELS[typeof chart.labelKey]]}</span>
+  1550→                      <span className="text-[10px] text-white/25 font-mono tabular-nums">{count}</span>
+  1551→                    </div>
+  1552→                    <div className="h-2 rounded-full bg-white/[0.03] overflow-hidden">
+  1553→                      <motion.div initial={{ width: 0 }} animate={{ width: `${(count / chart.max) * 100}%` }} transition={{ duration: 0.8, delay: 0.3 + i * 0.1 }} className={`h-full rounded-full bg-gradient-to-r ${chart.gradient}`} />
+  1554→                    </div>
+  1555→                  </div>
+  1556→                ))}
+  1557→              </div>
+  1558→            </Card>
+  1559→          </motion.div>
+  1560→        ))}
+  1561→      </div>
+  1562→
+  1563→      {/* Top Colors */}
+  1564→      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
+  1565→        <Card className="bg-white/[0.015] border-white/[0.04] rounded-2xl p-5 backdrop-blur-sm">
+  1566→          <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2"><Star className="h-3.5 w-3.5 text-amber-400" />Colores Mas Usados</h3>
+  1567→          <div className="space-y-2.5">
+  1568→            {stats.topColors.map(([color, count]) => (
+  1569→              <div key={color} className="flex items-center gap-3">
+  1570→                <div className="w-6 h-6 rounded-lg border border-white/[0.06] flex-shrink-0" style={{ backgroundColor: color }} />
+  1571→                <div className="flex-1 min-w-0">
+  1572→                  <div className="h-1.5 rounded-full bg-white/[0.03] overflow-hidden">
+  1573→                    <motion.div initial={{ width: 0 }} animate={{ width: `${(count / stats.topColors[0][1]) * 100}%` }} transition={{ duration: 0.6 }} className="h-full rounded-full" style={{ backgroundColor: color }} />
+  1574→                  </div>
+  1575→                </div>
+  1576→                <span className="text-[10px] text-white/25 font-mono w-6 text-right tabular-nums">{count}</span>
+  1577→              </div>
+  1578→            ))}
+  1579→          </div>
+  1580→        </Card>
+  1581→      </motion.div>
+  1582→
+  1583→      {/* Top Garments */}
+  1584→      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
+  1585→        <Card className="bg-white/[0.015] border-white/[0.04] rounded-2xl p-5 backdrop-blur-sm">
+  1586→          <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2"><TrendingUp className="h-3.5 w-3.5 text-emerald-400" />Prendas Mas Versatiles</h3>
+  1587→          <div className="space-y-2">
+  1588→            {topGarmentNames.map((g, i) => (
+  1589→              <div key={g.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.015] border border-white/[0.03] hover:bg-white/[0.025] transition-colors">
+  1590→                <span className={`text-[10px] font-black w-5 text-center tabular-nums ${i === 0 ? 'text-amber-400' : 'text-white/15'}`}>#{i + 1}</span>
+  1591→                <span className="text-lg">{g.emoji}</span>
+  1592→                <div className="flex-1 min-w-0">
+  1593→                  <p className="text-[11px] text-white/60 font-medium truncate">{g.nombre}</p>
+  1594→                </div>
+  1595→                <div className="w-4 h-4 rounded-full border border-white/[0.06]" style={{ backgroundColor: g.colorHex }} />
+  1596→                <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/[0.03]">
+  1597→                  <Zap className="h-2.5 w-2.5 text-amber-400" />
+  1598→                  <span className="text-[10px] text-white/40 font-bold tabular-nums">{g.count}</span>
+  1599→                </div>
+  1600→              </div>
+  1601→            ))}
+  1602→          </div>
+  1603→        </Card>
+  1604→      </motion.div>
+  1605→    </div>
+  1606→  );
+  1607→}
+  1608→

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,8 @@ import {
   SlidersHorizontal, Briefcase, Shirt, Sun, Moon, CloudSun, Flame, Snowflake,
   Wine, Music, Crown, Search, X, BarChart3, ChevronDown, ChevronRight,
   TrendingUp, ShirtIcon, Clock, MapPin, Zap, Star, Gem,
-  Calendar, Copy, Check, Share2, ArrowLeftRight, Timer, Sparkle, Compass, Award
+  Calendar, Copy, Check, Share2, ArrowLeftRight, Timer, Sparkle, Compass, Award,
+  MessageSquare, Send, CheckCircle2, UserCircle, Trash2
 } from 'lucide-react';
 import type { Ocasion, Momento, Clima, Estilo } from '@/data/types';
 import { LABELS } from '@/data/types';
@@ -25,6 +26,10 @@ const FAVS_KEY = 'stylevault_favorites';
 const HISTORY_KEY = 'stylevault_history';
 const MAX_HISTORY = 20;
 const WEEKLY_KEY = 'stylevault_weekly';
+const WORN_KEY = 'stylevault_worn';
+const RATINGS_KEY = 'stylevault_ratings';
+
+interface WornEntry { count: number; lastWorn: string; dates: string[] }
 
 interface GarmentDetail {
   id: string; nombre: string; emoji: string; color: string; colorHex: string;
@@ -67,6 +72,39 @@ function useHistory() {
     });
   }, []);
   return { history, add };
+}
+
+function useWornTracker() {
+  const [worn, setWorn] = useState<Record<string, WornEntry>>(() => {
+    if (typeof window === 'undefined') return {};
+    try { return JSON.parse(localStorage.getItem(WORN_KEY) || '{}'); } catch { return {}; }
+  });
+  const markWorn = useCallback((id: string) => {
+    setWorn(prev => {
+      const today = new Date().toISOString().split('T')[0];
+      const entry = prev[id] || { count: 0, lastWorn: '', dates: [] };
+      const updated = { ...entry, count: entry.count + 1, lastWorn: today, dates: [...new Set([...entry.dates, today])] };
+      const next = { ...prev, [id]: updated };
+      localStorage.setItem(WORN_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+  return { worn, markWorn };
+}
+
+function useRatings() {
+  const [ratings, setRatings] = useState<Record<string, number>>(() => {
+    if (typeof window === 'undefined') return {};
+    try { return JSON.parse(localStorage.getItem(RATINGS_KEY) || '{}'); } catch { return {}; }
+  });
+  const rate = useCallback((id: string, stars: number) => {
+    setRatings(prev => {
+      const next = { ...prev, [id]: stars };
+      localStorage.setItem(RATINGS_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+  return { ratings, rate };
 }
 
 function getTimeGreeting() {
@@ -245,6 +283,8 @@ export default function StyleVaultPage() {
   const greeting = useMemo(getTimeGreeting, []);
   const { favs, toggle: toggleFav, isFav } = useFavorites();
   const { history, add: addHistory } = useHistory();
+  const { worn, markWorn } = useWornTracker();
+  const { ratings, rate } = useRatings();
   const filterCount = [ocasion, momento, clima, estilo].filter(Boolean).length;
 
   const getSuggestions = useCallback(async () => {
@@ -377,6 +417,9 @@ export default function StyleVaultPage() {
               </TabsTrigger>
               <TabsTrigger value="favorites" className="rounded-xl data-[state=active]:bg-rose-500/15 data-[state=active]:text-rose-400 gap-1.5 text-xs sm:text-sm transition-all duration-300">
                 <Heart className="h-3.5 w-3.5" /><span className="hidden sm:inline">Favoritos</span><span className="sm:hidden">{'\u2764'}</span>
+              </TabsTrigger>
+              <TabsTrigger value="advisor" className="rounded-xl data-[state=active]:bg-violet-500/15 data-[state=active]:text-violet-400 data-[state=active]:shadow-[0_0_15px_rgba(139,92,246,0.08)] gap-1.5 text-xs sm:text-sm transition-all duration-300">
+                <MessageSquare className="h-3.5 w-3.5" /><span className="hidden sm:inline">Asesor IA</span><span className="sm:hidden">Chat</span>
               </TabsTrigger>
               <TabsTrigger value="stats" className="rounded-xl data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-400 gap-1.5 text-xs sm:text-sm transition-all duration-300">
                 <BarChart3 className="h-3.5 w-3.5" /><span className="hidden sm:inline">Estadisticas</span><span className="sm:hidden">{'\u{1F4CA}'}</span>
@@ -645,7 +688,13 @@ export default function StyleVaultPage() {
 
             {/* === STATS TAB === */}
             <TabsContent value="stats" className="mt-6">
-              <StatsSection />
+            {/* === AI ADVISOR TAB === */
+            <TabsContent value="advisor" className="mt-6">
+              <AdvisorSection />
+            </TabsContent>
+
+
+              <StatsSection worn={worn} ratings={ratings} />
             </TabsContent>
           </Tabs>
         </main>
@@ -657,7 +706,7 @@ export default function StyleVaultPage() {
               <div className="w-5 h-5 rounded-md bg-gradient-to-br from-amber-500/30 to-amber-900/30 flex items-center justify-center">
                 <Warehouse className="h-2.5 w-2.5 text-amber-400/60" />
               </div>
-              <p className="text-[10px] text-white/15 font-medium">StyleVault v4.0 \u{2014} Enrique Cascante</p>
+              <p className="text-[10px] text-white/15 font-medium">StyleVault v5.0 \u{2014} Enrique Cascante</p>
             </div>
             <div className="flex items-center gap-3 text-[10px] text-white/12 font-medium">
               <span>130 outfits</span>
@@ -666,7 +715,7 @@ export default function StyleVaultPage() {
               <div className="w-px h-2.5 bg-white/[0.06]" />
               <span>4 esteticas</span>
               <div className="w-px h-2.5 bg-white/[0.06]" />
-              <span className="text-amber-400/30">Planner + Share</span>
+              <span className="text-amber-400/30">Advisor + Worn</span>
             </div>
           </div>
         </footer>
@@ -674,7 +723,7 @@ export default function StyleVaultPage() {
 
       {/* Outfit Detail Dialog */}
       {detailOutfit && (
-        <OutfitDetailDialog outfit={detailOutfit} onClose={() => setDetailOutfit(null)} isFav={isFav(detailOutfit.outfit.id)} onToggleFav={() => toggleFav(detailOutfit.outfit.id)} />
+        <OutfitDetailDialog outfit={detailOutfit} onClose={() => setDetailOutfit(null)} isFav={isFav(detailOutfit.outfit.id)} onToggleFav={() => toggleFav(detailOutfit.outfit.id)} worn={worn[detailOutfit.outfit.id]} rating={ratings[detailOutfit.outfit.id] onRate={(id: string, stars: number) => rate(id, stars)} onMarkWorn={(id: string) => { markWorn(id); toast.success('Look registrado como vestido'); }} />
       )}
 
       {/* Comparison Dialog */}
@@ -798,7 +847,7 @@ function OutfitCardRow({ suggestion, rank, selected, onSelect, isFav, onToggleFa
 /* ============================================================
    OUTFIT DETAIL DIALOG (Enhanced with Color Harmony)
    ============================================================ */
-function OutfitDetailDialog({ outfit: s, onClose, isFav, onToggleFav }: { outfit: Suggestion; onClose: () => void; isFav: boolean; onToggleFav: () => void }) {
+function OutfitDetailDialog({ outfit: s, onClose, isFav, onToggleFav, worn, rating, onRate, onMarkWorn }: { outfit: Suggestion; onClose: () => void; isFav: boolean; onToggleFav: () => void; worn?: WornEntry; rating?: number; onRate: (id: string, stars: number) => void; onMarkWorn: (id: string) => void; }) {
   const [copied, setCopied] = useState(false);
   const harmony = getHarmonyScore(s.outfit.paletaColores);
 
@@ -889,6 +938,24 @@ function OutfitDetailDialog({ outfit: s, onClose, isFav, onToggleFav }: { outfit
                   <div className="w-5 h-5 rounded-full border border-white/[0.08]" style={{ backgroundColor: g.colorHex }} />
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Rating + Worn info */}
+          <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center gap-2">
+              <p className="text-[10px] font-semibold text-white/25 uppercase tracking-[0.15em] mb-1">Tu Valoracion</p>
+              <div className="flex gap-0.5" onClick={(e) => { e.stopPropagation(); rate(s.outfit.id, 5); }}>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button key={n} className="transition-transform hover:scale-125" onClick={(e) => { e.stopPropagation(); rate(s.outfit.id, n); }}>
+                    <Star className={`h-5 w-5 transition-colors ${n <= (ratings[s.outfit.id] || 0) ? 'text-amber-400 fill-amber-400' : 'text-white/15 hover:text-amber-400/50'}`} />
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-[10px] text-white/25">
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400/60" />
+              <span>Vestido {worn[s.outfit.id]?.count || 0} veces</span>
             </div>
           </div>
 
@@ -1444,7 +1511,157 @@ function FavoritesSection({ favs, isFav, onToggleFav, onViewDetail }: { favs: st
 /* ============================================================
    STATS SECTION
    ============================================================ */
-function StatsSection() {
+function StatsSection({ worn, ratings }: { worn?: Record<string, WornEntry>; ratings?: Record<string, number> }) {
+
+function AdvisorSection() {
+  const [messages, setMessages] = useState<Array<{role: 'user' | 'assistant'; content: string; time: string }>>([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const chatRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const SUGGESTIONS = [
+    '\xbfQue me pongo para una junta importante?',
+    '\xbfOutfit para un concierto de metal?',
+    '\xbfCombina algo estilo old money',
+    '\xbfQue no deberia usar nunca?',
+    '\xbfSugiere un look de viernes casual',
+    '\xbfEstilo para una cita romantica?',
+  ];
+
+  useEffect(() => {
+    if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
+  }, [messages]);
+
+  const sendMessage = useCallback(async (text?: string) => {
+    const msg = (text || input).trim();
+    if (!msg || loading) return;
+    setInput('');
+    const time = new Date().toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' });
+    setMessages(prev => [...prev, { role: 'user', content: msg, time }]);
+    setLoading(true);
+    try {
+      const res = await fetch('/api/advisor', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msg, sessionId: 'stylevault-chat' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const aTime = new Date().toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' });
+        setMessages(prev => [...prev, { role: 'assistant', content: data.response, time: aTime }]);
+      } else {
+        setMessages(prev => [...prev, { role: 'assistant', content: 'Lo siento, no pude procesar tu pregunta. Intenta de nuevo.', time: new Date().toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' }) }]);
+      }
+    } catch {
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Error de conexion. Verifica tu conexion e intenta de nuevo.', time: new Date().toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' }) }]);
+    }
+    finally { setLoading(false); }
+  }, [input, loading]);
+
+  const clearChat = useCallback(async () => {
+    try { await fetch('/api/advisor?sessionId=stylevault-chat', { method: 'DELETE' }); } catch {}
+    setMessages([]);
+  }, []);
+
+  return (
+    <div className="space-y-5">
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold text-white/90 flex items-center gap-2"><MessageSquare className="h-5 w-5 text-violet-400" />Asesor de Estilo IA</h2>
+            <p className="text-xs text-white/25 mt-0.5">Tu estilista personal impulsado por inteligencia artificial</p>
+          </div>
+          {messages.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={clearChat} className="text-xs text-white/25 hover:text-white/50 h-8 gap-1.5"><Trash2 className="h-3 w-3" />Limpiar chat</Button>
+          )}
+        </div>
+      </motion.div>
+
+      <div className="relative bg-white/[0.015] border border-white/[0.05] rounded-2xl overflow-hidden backdrop-blur-sm" style={{ height: 'calc(100vh - 380px)', minHeight: '400px' }}>
+        <div ref={chatRef} className="absolute inset-0 overflow-y-auto p-4 space-y-4">
+          {messages.length === 0 ? (
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4, type: 'spring' }} className="flex flex-col items-center justify-center h-full text-center">
+              <div className="w-16 h-16 rounded-2xl bg-violet-500/[0.06] border border-violet-500/10 flex items-center justify-center mb-5 animate-float-slow">
+                <UserCircle className="h-8 w-8 text-violet-400/40" />
+              </div>
+              <h3 className="text-lg font-semibold text-white/50 mb-2">{'\xbf'}Hola, Enrique!</h3>
+              <p className="text-sm text-white/20 max-w-sm mb-6 leading-relaxed">Soy tu asesor de estilo personal. Preguntame sobre outfits, combinaciones, o cualquier duda de moda.</p>
+              <div className="flex flex-wrap gap-1.5 justify-center max-w-md">
+                {SUGGESTIONS.map((s, i) => (
+                  <button key={i} onClick={() => sendMessage(s)}
+                    className="px-3 py-2 rounded-xl border border-violet-500/10 bg-violet-500/[0.03] text-violet-300/70 text-[11px] font-medium hover:bg-violet-500/[0.08] hover:border-violet-500/20 transition-all duration-200">
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          ) : (
+            <AnimatePresence mode="popLayout">
+              {messages.map((msg, i) => (
+                <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
+                  <div className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                      msg.role === 'user' ? 'bg-amber-500/20 border border-amber-500/30' : 'bg-violet-500/10 border border-violet-500/15'
+                    }`}>{msg.role === 'user' ? <UserCircle className="h-4 w-4 text-amber-300" /> : <Sparkles className="h-4 w-4 text-violet-300" />}</div>
+                    <div className={`flex-1 min-w-0 rounded-2xl px-4 py-3 ${
+                      msg.role === 'user'
+                        ? 'bg-amber-500/[0.06] border border-amber-500/10 ml-10'
+                        : 'bg-white/[0.02] border border-white/[0.04]'
+                    }`}>
+                      <p className={`text-sm leading-relaxed whitespace-pre-wrap ${msg.role === 'user' ? 'text-amber-100' : 'text-white/60'}`}>{msg.content}</p>
+                      <p className={`text-[9px] mt-1 ${msg.role === 'user' ? 'text-amber-400/40 text-right' : 'text-white/15'}`}>{msg.time}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+              {loading && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-violet-500/10 border border-violet-500/15 flex items-center justify-center">
+                    <Sparkles className="h-4 w-4 text-violet-400 animate-pulse" />
+                  </div>
+                  <div className="flex-1 rounded-2xl px-4 py-3 bg-white/[0.02] border border-white/[0.04]">
+                    <div className="flex gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-violet-400/40 animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <div className="w-2 h-2 rounded-full bg-violet-400/40 animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <div className="w-2 h-2 rounded-full bg-violet-400/40 animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          )}
+        </div>
+      </div>
+
+      {messages.length > 0 && !loading && (
+        <div className="flex flex-wrap gap-1.5">
+          {SUGGESTIONS.slice(0, 4).map((s, i) => (
+            <button key={i} onClick={() => sendMessage(s)}
+              className="px-2.5 py-1.5 rounded-lg border border-white/[0.04] bg-white/[0.02] text-white/30 text-[10px] font-medium hover:bg-violet-500/[0.06] hover:text-violet-300 hover:border-violet-500/15 transition-all duration-200">
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="relative">
+        <Input
+          ref={inputRef}
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) sendMessage(); }}
+          placeholder="Pregunta sobre tu estilo..."
+          disabled={loading}
+          className="w-full h-12 pl-12 pr-24 text-sm bg-white/[0.025] border-violet-500/15 border-white/[0.05] rounded-2xl text-white/70 placeholder:text-white/15 focus:border-violet-400/30 focus:ring-violet-500/10 transition-all duration-200"
+        />
+        <button onClick={() => sendMessage()} disabled={loading || !input.trim()}
+          className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-30 disabled:cursor-not-allowed text-white flex items-center justify-center transition-all duration-200 active:scale-95 shadow-lg shadow-violet-900/30">
+          <Send className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
+  );
+}
   const [allOutfits, setAllOutfits] = useState<OutfitBasic[]>([]);
   const [allGarments, setAllGarments] = useState<Array<Record<string, unknown>>>([]);
   const [loading, setLoading] = useState(false);

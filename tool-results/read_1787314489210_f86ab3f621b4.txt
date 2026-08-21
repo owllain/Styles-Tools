@@ -1,0 +1,959 @@
+   688→
+   689→            {/* === STATS TAB === */}
+   690→            <TabsContent value="stats" className="mt-6">
+   691→              <StatsSection />
+   692→            </TabsContent>
+   693→          </Tabs>
+   694→        </main>
+   695→
+   696→        {/* Footer */}
+   697→        <footer className="border-t border-white/[0.04] mt-auto bg-[#0a0a0b]/50 backdrop-blur-sm">
+   698→          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+   699→            <div className="flex items-center gap-2">
+   700→              <div className="w-5 h-5 rounded-md bg-gradient-to-br from-amber-500/30 to-amber-900/30 flex items-center justify-center">
+   701→                <Warehouse className="h-2.5 w-2.5 text-amber-400/60" />
+   702→              </div>
+   703→              <p className="text-[10px] text-white/15 font-medium">StyleVault v4.0 \u{2014} Enrique Cascante</p>
+   704→            </div>
+   705→            <div className="flex items-center gap-3 text-[10px] text-white/12 font-medium">
+   706→              <span>130 outfits</span>
+   707→              <div className="w-px h-2.5 bg-white/[0.06]" />
+   708→              <span>46 prendas</span>
+   709→              <div className="w-px h-2.5 bg-white/[0.06]" />
+   710→              <span>4 esteticas</span>
+   711→              <div className="w-px h-2.5 bg-white/[0.06]" />
+   712→              <span className="text-amber-400/30">Planner + Share</span>
+   713→            </div>
+   714→          </div>
+   715→        </footer>
+   716→      </div>
+   717→
+   718→      {/* Outfit Detail Dialog */}
+   719→      {detailOutfit && (
+   720→        <OutfitDetailDialog outfit={detailOutfit} onClose={() => setDetailOutfit(null)} isFav={isFav(detailOutfit.outfit.id)} onToggleFav={() => toggleFav(detailOutfit.outfit.id)} />
+   721→      )}
+   722→
+   723→      {/* Comparison Dialog */}
+   724→      {showComparison && (
+   725→        <ComparisonDialog outfits={compareData} onClose={() => { setShowComparison(false); setCompareIds([]); setCompareData([]); }} />
+   726→      )}
+   727→    </div>
+   728→  );
+   729→}
+   730→
+   731→/* ============================================================
+   732→   OUTFIT CARD ROW (Suggestions Tab)
+   733→   ============================================================ */
+   734→function OutfitCardRow({ suggestion, rank, selected, onSelect, isFav, onToggleFav, onViewDetail, onShare, compareMode, isComparing, onToggleCompare }: {
+   735→  suggestion: Suggestion; rank: number; selected: boolean; onSelect: () => void; isFav?: boolean; onToggleFav?: () => void; onViewDetail?: () => void; onShare?: () => void; compareMode?: boolean; isComparing?: boolean; onToggleCompare?: () => void;
+   736→}) {
+   737→  const { outfit, garments, matchDetails, score } = suggestion;
+   738→  const matchCount = [matchDetails.ocasion, matchDetails.momento, matchDetails.clima, matchDetails.estilo].filter(Boolean).length;
+   739→  const harmony = getHarmonyScore(outfit.paletaColores);
+   740→  return (
+   741→    <Card className={`bg-white/[0.02] border rounded-2xl overflow-hidden transition-all duration-300 group backdrop-blur-sm weekly-card-shine ${
+   742→      isComparing ? 'border-amber-500/30 shadow-[0_0_25px_-5px_rgba(245,158,11,0.1)] animate-glow-pulse' :
+   743→      selected ? 'border-amber-500/20 shadow-[0_0_30px_-5px_rgba(245,158,11,0.06)]' : 'border-white/[0.04] hover:border-white/[0.08] hover:shadow-lg hover:shadow-black/20'
+   744→    }`}>
+   745→      <CardContent className="p-0">
+   746→        {/* Top bar: rank + score + actions */}
+   747→        <div className="flex items-center justify-between px-5 pt-4 pb-2">
+   748→          <div className="flex items-center gap-2.5">
+   749→            <span className={`text-[11px] font-black tabular-nums w-8 h-8 rounded-lg flex items-center justify-center border ${
+   750→              rank === 1 ? 'bg-gradient-to-br from-amber-500/25 to-amber-700/15 border-amber-500/30 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.12)]' :
+   751→              rank === 2 ? 'bg-white/[0.05] border-white/[0.08] text-white/45' :
+   752→              rank === 3 ? 'bg-orange-500/8 border-orange-500/12 text-orange-400/80' :
+   753→              'bg-white/[0.02] border-white/[0.05] text-white/20'
+   754→            }`}>#{rank}</span>
+   755→            <div className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${getScoreBg(score)} ${getScoreColor(score)}`}>{Math.round(score)}%</div>
+   756→            <div className={`w-12 h-1.5 rounded-full bg-white/[0.04] overflow-hidden`}><div className={`h-full rounded-full ${getScoreBarColor(score)} transition-all duration-700`} style={{ width: `${score}%` }} /></div>
+   757→            <span className="text-[10px] text-white/18">{matchCount}/4</span>
+   758→            {/* Harmony mini indicator */}
+   759→            <div className="hidden sm:flex items-center gap-1 ml-1">
+   760→              <div className={`w-1.5 h-1.5 rounded-full ${harmony.score >= 75 ? 'bg-emerald-400' : harmony.score >= 55 ? 'bg-amber-400' : 'bg-orange-400'}`} />
+   761→              <span className="text-[9px] text-white/15 font-mono">{harmony.score}</span>
+   762→            </div>
+   763→          </div>
+   764→          <div className="flex items-center gap-0.5">
+   765→            {compareMode && onToggleCompare && (
+   766→              <button className={`h-7 w-7 p-0 rounded-lg transition-all duration-200 flex items-center justify-center ${isComparing ? 'text-amber-400 bg-amber-500/10' : 'text-white/10 hover:text-amber-400 hover:bg-amber-500/5'}`} onClick={(e) => { e.stopPropagation(); onToggleCompare(); }} title="Comparar">
+   767→                <ArrowLeftRight className="h-3 w-3" />
+   768→              </button>
+   769→            )}
+   770→            {onShare && (
+   771→              <button className="h-7 w-7 p-0 rounded-lg transition-all duration-200 flex items-center justify-center text-white/10 hover:text-white/40" onClick={(e) => { e.stopPropagation(); onShare(); }} title="Compartir">
+   772→                <Share2 className="h-3 w-3" />
+   773→              </button>
+   774→            )}
+   775→            {onToggleFav && (
+   776→              <button className={`h-7 w-7 p-0 rounded-lg transition-all duration-200 flex items-center justify-center ${isFav ? 'text-rose-400 hover:text-rose-300' : 'text-white/10 hover:text-rose-400'}`} onClick={(e) => { e.stopPropagation(); onToggleFav(); }}>
+   777→                <Heart className={`h-3.5 w-3.5 transition-all ${isFav ? 'fill-rose-400 scale-110' : ''}`} />
+   778→              </button>
+   779→            )}
+   780→            <button className={`h-7 w-7 p-0 rounded-lg flex items-center justify-center transition-transform duration-300 text-white/12 ${selected ? 'rotate-180' : ''}`} onClick={(e) => { e.stopPropagation(); onSelect(); }}>
+   781→              <ChevronDown className="h-3.5 w-3.5" />
+   782→            </button>
+   783→          </div>
+   784→        </div>
+   785→        {/* Main content */}
+   786→        <button onClick={onSelect} className="w-full text-left px-5 pb-4">
+   787→          <h3 className="text-[15px] font-semibold text-white/80 group-hover:text-amber-200 transition-colors leading-tight">{outfit.nombre}</h3>
+   788→          <p className="text-xs text-white/30 mt-1.5 line-clamp-2 leading-relaxed">{outfit.descripcion}</p>
+   789→          <div className="flex items-center gap-2 mt-4">
+   790→            <div className="flex -space-x-1">
+   791→              {outfit.paletaColores.map((color, i) => (
+   792→                <div key={i} className="w-7 h-7 rounded-full border-2 border-[#0a0a0b] shadow-md transition-transform hover:scale-125 hover:z-10 relative" style={{ backgroundColor: color, zIndex: outfit.paletaColores.length - i }} title={color} />
+   793→              ))}
+   794→            </div>
+   795→            <div className="flex-1" />
+   796→            <div className="flex flex-wrap gap-1">
+   797→              {matchDetails.ocasion && <Badge variant="secondary" className="bg-emerald-500/8 text-emerald-400/80 border-emerald-500/12 text-[10px] px-2 py-0 h-5 font-medium">{LABELS.ocasion[outfit.ocasion[0] as keyof typeof LABELS.ocasion]}</Badge>}
+   798→              {matchDetails.momento && <Badge variant="secondary" className="bg-sky-500/8 text-sky-400/80 border-sky-500/12 text-[10px] px-2 py-0 h-5 font-medium">{LABELS.momento[outfit.momento[0] as keyof typeof LABELS.momento]}</Badge>}
+   799→              {matchDetails.clima && <Badge variant="secondary" className="bg-orange-500/8 text-orange-400/80 border-orange-500/12 text-[10px] px-2 py-0 h-5 font-medium">{LABELS.clima[outfit.clima[0] as keyof typeof LABELS.clima]}</Badge>}
+   800→              {matchDetails.estilo && <Badge variant="secondary" className="bg-violet-500/8 text-violet-400/80 border-violet-500/12 text-[10px] px-2 py-0 h-5 font-medium">{LABELS.estilo[outfit.estilo[0] as keyof typeof LABELS.estilo]}</Badge>}
+   801→            </div>
+   802→          </div>
+   803→        </button>
+   804→        {/* Expanded garment list */}
+   805→        <AnimatePresence>
+   806→          {selected && (
+   807→            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="border-t border-white/[0.04] bg-white/[0.01] px-5 py-4">
+   808→              <h4 className="text-[10px] font-semibold text-white/25 uppercase tracking-[0.15em] mb-3">Prendas del Outfit</h4>
+   809→              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+   810→                {garments.map((g) => (
+   811→                  <div key={g.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/[0.03] hover:bg-white/[0.04] transition-colors">
+   812→                    <span className="text-base">{g.emoji}</span>
+   813→                    <div className="flex-1 min-w-0">
+   814→                      <p className="text-[11px] text-white/65 truncate font-medium">{g.nombre}</p>
+   815→                      <p className="text-[10px] text-white/20">{g.color}</p>
+   816→                    </div>
+   817→                    <div className="w-4 h-4 rounded-full border border-white/[0.08] flex-shrink-0" style={{ backgroundColor: g.colorHex }} />
+   818→                  </div>
+   819→                ))}
+   820→              </div>
+   821→              {onViewDetail && (
+   822→                <div className="flex gap-2 mt-3">
+   823→                  <Button variant="outline" size="sm" className="flex-1 rounded-xl border-white/[0.05] text-white/35 hover:text-amber-400 hover:border-amber-500/20 hover:bg-amber-500/5 text-xs gap-2 transition-all duration-200" onClick={(e) => { e.stopPropagation(); onViewDetail(); }}>
+   824→                    <Eye className="h-3 w-3" /> Ver Detalle
+   825→                  </Button>
+   826→                  {onShare && (
+   827→                    <Button variant="outline" size="sm" className="rounded-xl border-white/[0.05] text-white/35 hover:text-white/60 hover:border-white/[0.1] text-xs gap-2 transition-all duration-200" onClick={(e) => { e.stopPropagation(); onShare(); }}>
+   828→                      <Share2 className="h-3 w-3" /> Compartir
+   829→                    </Button>
+   830→                  )}
+   831→                </div>
+   832→              )}
+   833→            </motion.div>
+   834→          )}
+   835→        </AnimatePresence>
+   836→      </CardContent>
+   837→    </Card>
+   838→  );
+   839→}
+   840→
+   841→/* ============================================================
+   842→   OUTFIT DETAIL DIALOG (Enhanced with Color Harmony)
+   843→   ============================================================ */
+   844→function OutfitDetailDialog({ outfit: s, onClose, isFav, onToggleFav }: { outfit: Suggestion; onClose: () => void; isFav: boolean; onToggleFav: () => void }) {
+   845→  const [copied, setCopied] = useState(false);
+   846→  const harmony = getHarmonyScore(s.outfit.paletaColores);
+   847→
+   848→  const handleCopy = () => {
+   849→    copyOutfitToClipboard(s.outfit, s.garments);
+   850→    setCopied(true);
+   851→    setTimeout(() => setCopied(false), 2000);
+   852→  };
+   853→
+   854→  return (
+   855→    <Dialog open onOpenChange={onClose}>
+   856→      <DialogContent className="bg-[#111113] border-white/[0.07] rounded-2xl max-w-lg w-[95vw] p-0 overflow-hidden backdrop-blur-xl">
+   857→        {/* Header gradient */}
+   858→        <div className="relative">
+   859→          <div className="h-36 bg-gradient-to-br from-amber-900/15 via-purple-900/10 to-transparent relative overflow-hidden">
+   860→            <div className="absolute inset-0 opacity-30" style={{ background: `linear-gradient(135deg, ${s.outfit.paletaColores[0]}20 0%, transparent 50%, ${s.outfit.paletaColores[s.outfit.paletaColores.length - 1]}15 100%)` }} />
+   861→          </div>
+   862→          <div className="absolute -bottom-6 left-6 flex items-center gap-3">
+   863→            <div className="w-14 h-14 rounded-2xl bg-[#111113] border-2 border-white/[0.08] flex items-center justify-center shadow-xl">
+   864→              <Gem className="h-6 w-6 text-amber-400" />
+   865→            </div>
+   866→          </div>
+   867→          {/* Close button */}
+   868→          <button onClick={onClose} className="absolute top-3 right-3 h-8 w-8 rounded-lg bg-black/30 backdrop-blur-sm border border-white/[0.06] flex items-center justify-center text-white/40 hover:text-white/70 transition-colors">
+   869→            <X className="h-4 w-4" />
+   870→          </button>
+   871→        </div>
+   872→        <div className="px-6 pt-10 pb-6 space-y-5">
+   873→          <DialogHeader>
+   874→            <div className="flex items-start justify-between gap-3">
+   875→              <div className="flex-1">
+   876→                <DialogTitle className="text-xl font-bold text-white/90 leading-tight">{s.outfit.nombre}</DialogTitle>
+   877→                <DialogDescription className="text-sm text-white/35 mt-2 leading-relaxed">{s.outfit.descripcion}</DialogDescription>
+   878→              </div>
+   879→              <button onClick={onToggleFav} className={`h-10 w-10 rounded-xl border flex items-center justify-center transition-all duration-200 flex-shrink-0 ${isFav ? 'border-rose-500/25 bg-rose-500/10 text-rose-400' : 'border-white/[0.05] bg-white/[0.02] text-white/15 hover:text-rose-400'}`}>
+   880→                <Heart className={`h-4 w-4 ${isFav ? 'fill-rose-400' : ''}`} />
+   881→              </button>
+   882→            </div>
+   883→          </DialogHeader>
+   884→
+   885→          {/* Color Palette + Harmony */}
+   886→          <div className="grid grid-cols-[1fr_auto] gap-4">
+   887→            <div>
+   888→              <p className="text-[10px] font-semibold text-white/25 uppercase tracking-[0.15em] mb-3">Paleta de Colores</p>
+   889→              <div className="flex items-center gap-2">
+   890→                {s.outfit.paletaColores.map((c, i) => (
+   891→                  <div key={i} className="group relative">
+   892→                    <div className="w-10 h-10 rounded-xl border-2 border-white/[0.06] shadow-lg transition-transform hover:scale-110" style={{ backgroundColor: c }} />
+   893→                  </div>
+   894→                ))}
+   895→              </div>
+   896→            </div>
+   897→            <div className="text-right">
+   898→              <p className="text-[10px] font-semibold text-white/25 uppercase tracking-[0.15em] mb-1">Armonia</p>
+   899→              <div className={`text-2xl font-black tabular-nums ${harmony.score >= 75 ? 'text-emerald-400' : harmony.score >= 55 ? 'text-amber-400' : 'text-orange-400'}`}>{harmony.score}</div>
+   900→              <p className="text-[9px] text-white/25 mt-0.5">{harmony.label}</p>
+   901→            </div>
+   902→          </div>
+   903→
+   904→          {/* Harmony description */}
+   905→          <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border ${harmony.score >= 75 ? 'bg-emerald-500/5 border-emerald-500/10' : harmony.score >= 55 ? 'bg-amber-500/5 border-amber-500/10' : 'bg-orange-500/5 border-orange-500/10'}`}>
+   906→            <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${harmony.score >= 75 ? 'bg-emerald-400' : harmony.score >= 55 ? 'bg-amber-400' : 'bg-orange-400'}`} />
+   907→            <p className="text-[10px] text-white/35">{harmony.description}</p>
+   908→          </div>
+   909→
+   910→          {/* Tags */}
+   911→          <div>
+   912→            <p className="text-[10px] font-semibold text-white/25 uppercase tracking-[0.15em] mb-3">Contexto</p>
+   913→            <div className="flex flex-wrap gap-1.5">
+   914→              {s.outfit.ocasion.map((o) => <Badge key={o} className="bg-emerald-500/8 text-emerald-400/80 border-emerald-500/12 text-[10px] font-medium">{LABELS.ocasion[o as keyof typeof LABELS.ocasion]}</Badge>)}
+   915→              {s.outfit.momento.map((m) => <Badge key={m} className="bg-sky-500/8 text-sky-400/80 border-sky-500/12 text-[10px] font-medium">{LABELS.momento[m as keyof typeof LABELS.momento]}</Badge>)}
+   916→              {s.outfit.clima.map((c) => <Badge key={c} className="bg-orange-500/8 text-orange-400/80 border-orange-500/12 text-[10px] font-medium">{LABELS.clima[c as keyof typeof LABELS.clima]}</Badge>)}
+   917→              {s.outfit.estilo.map((e) => <Badge key={e} className="bg-violet-500/8 text-violet-400/80 border-violet-500/12 text-[10px] font-medium">{LABELS.estilo[e as keyof typeof LABELS.estilo]}</Badge>)}
+   918→            </div>
+   919→          </div>
+   920→
+   921→          {/* Garments */}
+   922→          <div>
+   923→            <p className="text-[10px] font-semibold text-white/25 uppercase tracking-[0.15em] mb-3">Prendas Incluidas</p>
+   924→            <div className="space-y-1.5">
+   925→              {s.garments.map((g) => (
+   926→                <div key={g.id} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.025] border border-white/[0.04] hover:bg-white/[0.035] transition-colors">
+   927→                  <span className="text-lg">{g.emoji}</span>
+   928→                  <div className="flex-1 min-w-0">
+   929→                    <p className="text-sm text-white/75 font-medium truncate">{g.nombre}</p>
+   930→                    <p className="text-[11px] text-white/25">{g.color}</p>
+   931→                  </div>
+   932→                  <div className="w-5 h-5 rounded-full border border-white/[0.08]" style={{ backgroundColor: g.colorHex }} />
+   933→                </div>
+   934→              ))}
+   935→            </div>
+   936→          </div>
+   937→
+   938→          {/* Action bar */}
+   939→          <div className="flex items-center justify-between pt-2 gap-3">
+   940→            <div className="flex items-center gap-2">
+   941→              {s.score > 0 && <div className={`text-sm font-bold ${getScoreColor(s.score)}`}>Match: {Math.round(s.score)}%</div>}
+   942→            </div>
+   943→            <div className="flex items-center gap-2">
+   944→              <Button variant="outline" size="sm" className="rounded-xl border-white/[0.05] text-white/35 hover:text-white/60 text-xs gap-2 h-9" onClick={handleCopy}>
+   945→                {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+   946→                {copied ? 'Copiado' : 'Copiar'}
+   947→              </Button>
+   948→              <Button onClick={onClose} className="rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-sm font-medium transition-all duration-200 px-5 h-9">
+   949→                <Sparkles className="h-4 w-4 mr-2" />Usar este Look
+   950→              </Button>
+   951→            </div>
+   952→          </div>
+   953→        </div>
+   954→      </DialogContent>
+   955→    </Dialog>
+   956→  );
+   957→}
+   958→
+   959→/* ============================================================
+   960→   COMPARISON DIALOG
+   961→   ============================================================ */
+   962→function ComparisonDialog({ outfits, onClose }: { outfits: Suggestion[]; onClose: () => void }) {
+   963→  if (outfits.length !== 2) return null;
+   964→  const [a, b] = outfits;
+   965→  const hA = getHarmonyScore(a.outfit.paletaColores);
+   966→  const hB = getHarmonyScore(b.outfit.paletaColores);
+   967→  return (
+   968→    <Dialog open onOpenChange={onClose}>
+   969→      <DialogContent className="bg-[#111113] border-white/[0.07] rounded-2xl max-w-3xl w-[95vw] p-0 overflow-hidden backdrop-blur-xl max-h-[85vh] overflow-y-auto">
+   970→        <div className="p-6 space-y-5">
+   971→          <DialogHeader>
+   972→            <DialogTitle className="text-lg font-bold text-white/90 flex items-center gap-2">
+   973→              <ArrowLeftRight className="h-5 w-5 text-amber-400" />Comparacion de Outfits
+   974→            </DialogTitle>
+   975→          </DialogHeader>
+   976→          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+   977→            {[a, b].map((s, i) => {
+   978→              const h = i === 0 ? hA : hB;
+   979→              return (
+   980→                <div key={s.outfit.id} className="bg-white/[0.025] border border-white/[0.05] rounded-2xl p-5 space-y-4">
+   981→                  <div>
+   982→                    <h3 className="text-base font-bold text-white/85">{s.outfit.nombre}</h3>
+   983→                    <p className="text-xs text-white/30 mt-1 line-clamp-2">{s.outfit.descripcion}</p>
+   984→                  </div>
+   985→                  <div className="flex -space-x-1">{s.outfit.paletaColores.map((c, j) => <div key={j} className="w-6 h-6 rounded-full border-2 border-[#111113]" style={{ backgroundColor: c }} />)}</div>
+   986→                  <div className="flex flex-wrap gap-1">
+   987→                    {s.outfit.estilo.map(e => <Badge key={e} className="bg-violet-500/8 text-violet-400/80 text-[9px] px-1.5 py-0 border-violet-500/10">{LABELS.estilo[e as keyof typeof LABELS.estilo]}</Badge>)}
+   988→                    {s.outfit.clima.map(c => <Badge key={c} className="bg-orange-500/8 text-orange-400/80 text-[9px] px-1.5 py-0 border-orange-500/10">{LABELS.clima[c as keyof typeof LABELS.clima]}</Badge>)}
+   989→                  </div>
+   990→                  <div className="text-[10px] text-white/20 uppercase tracking-wider font-semibold pt-2 border-t border-white/[0.04]">Prendas</div>
+   991→                  {s.garments.map(g => (
+   992→                    <div key={g.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-white/[0.02]">
+   993→                      <span className="text-sm">{g.emoji}</span>
+   994→                      <span className="text-[11px] text-white/60 truncate flex-1">{g.nombre}</span>
+   995→                      <div className="w-3 h-3 rounded-full border border-white/[0.06]" style={{ backgroundColor: g.colorHex }} />
+   996→                    </div>
+   997→                  ))}
+   998→                  <div className={`flex items-center justify-between px-3 py-2.5 rounded-xl border ${h.score >= 75 ? 'bg-emerald-500/5 border-emerald-500/10' : 'bg-amber-500/5 border-amber-500/10'}`}>
+   999→                    <span className="text-[10px] text-white/30 font-medium">Armonia</span>
+  1000→                    <span className={`text-sm font-bold tabular-nums ${h.score >= 75 ? 'text-emerald-400' : 'text-amber-400'}`}>{h.score}%</span>
+  1001→                  </div>
+  1002→                </div>
+  1003→              );
+  1004→            })}
+  1005→          </div>
+  1006→          {/* Comparison summary */}
+  1007→          <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-4">
+  1008→            <div className="grid grid-cols-3 gap-4 text-center">
+  1009→              <div>
+  1010→                <p className="text-[9px] text-white/25 uppercase tracking-wider mb-1">Colores A</p>
+  1011→                <p className="text-lg font-bold text-white/60 tabular-nums">{a.outfit.paletaColores.length}</p>
+  1012→              </div>
+  1013→              <div>
+  1014→                <p className="text-[9px] text-white/25 uppercase tracking-wider mb-1">Colores B</p>
+  1015→                <p className="text-lg font-bold text-white/60 tabular-nums">{b.outfit.paletaColores.length}</p>
+  1016→              </div>
+  1017→              <div>
+  1018→                <p className="text-[9px] text-white/25 uppercase tracking-wider mb-1">Prendas</p>
+  1019→                <p className="text-lg font-bold text-white/60 tabular-nums">{a.garments.length} vs {b.garments.length}</p>
+  1020→              </div>
+  1021→            </div>
+  1022→          </div>
+  1023→        </div>
+  1024→      </DialogContent>
+  1025→    </Dialog>
+  1026→  );
+  1027→}
+  1028→
+  1029→/* ============================================================
+  1030→   WEEKLY PLANNER SECTION
+  1031→   ============================================================ */
+  1032→function WeeklyPlannerSection({ favs, isFav, onToggleFav, onViewDetail }: { favs: string[]; isFav: (id: string) => boolean; onToggleFav: (id: string) => void; onViewDetail: (s: Suggestion) => void }) {
+  1033→  const [week, setWeek] = useState<WeeklyDay[]>([]);
+  1034→  const [loading, setLoading] = useState(false);
+  1035→  const [weeklyClima, setWeeklyClima] = useState<Clima | null>(null);
+  1036→
+  1037→  const generateWeek = useCallback(async () => {
+  1038→    setLoading(true);
+  1039→    try {
+  1040→      const res = await fetch('/api/weekly', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clima: weeklyClima || undefined }) });
+  1041→      const data = await res.json();
+  1042→      if (data.success) {
+  1043→        setWeek(data.week);
+  1044→        localStorage.setItem(WEEKLY_KEY, JSON.stringify({ date: new Date().toDateString(), week: data.week }));
+  1045→      }
+  1046→    } catch (e) { console.error(e); }
+  1047→    finally { setLoading(false); }
+  1048→  }, [weeklyClima]);
+  1049→
+  1050→  useEffect(() => {
+  1051→    try {
+  1052→      const cached = JSON.parse(localStorage.getItem(WEEKLY_KEY) || '{}');
+  1053→      if (cached.date === new Date().toDateString() && cached.week) {
+  1054→        setWeek(cached.week);
+  1055→        return;
+  1056→      }
+  1057→    } catch {}
+  1058→    generateWeek();
+  1059→  }, [generateWeek]);
+  1060→
+  1061→  return (
+  1062→    <div className="space-y-5">
+  1063→      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+  1064→        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+  1065→          <div>
+  1066→            <h2 className="text-lg font-bold text-white/90 flex items-center gap-2">
+  1067→              <Calendar className="h-5 w-5 text-amber-400" />Planificador Semanal
+  1068→            </h2>
+  1069→            <p className="text-xs text-white/30 mt-0.5">Tu semana de estilo, planificada inteligentemente</p>
+  1070→          </div>
+  1071→          <div className="flex items-center gap-2">
+  1072→            <div className="flex gap-1">
+  1073→              {CLIMA_OPTS.map(opt => (
+  1074→                <button key={opt.value} onClick={() => setWeeklyClima(weeklyClima === opt.value ? null : opt.value)}
+  1075→                  className={`h-8 px-2.5 rounded-lg border text-[10px] font-medium flex items-center gap-1.5 transition-all ${
+  1076→                    weeklyClima === opt.value ? 'bg-white/[0.08] border-white/[0.12] text-white' : 'border-white/[0.04] text-white/25 hover:text-white/50 hover:bg-white/[0.03]'
+  1077→                  }`}>
+  1078→                  {opt.icon}{LABELS.clima[opt.value]}
+  1079→                </button>
+  1080→              ))}
+  1081→            </div>
+  1082→            <Button onClick={generateWeek} disabled={loading} size="sm" className="h-8 bg-amber-600/80 hover:bg-amber-500 rounded-lg text-xs gap-1.5 border border-amber-500/20">
+  1083→              {loading ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}Regenerar
+  1084→            </Button>
+  1085→          </div>
+  1086→        </div>
+  1087→      </motion.div>
+  1088→
+  1089→      {loading && <div className="space-y-3">{Array.from({ length: 7 }).map((_, i) => <Skeleton key={i} className="h-32 bg-white/[0.02] rounded-2xl" />)}</div>}
+  1090→
+  1091→      {!loading && week.length > 0 && (
+  1092→        <motion.div className="space-y-3" variants={stagger} initial="initial" animate="animate">
+  1093→          {week.map((day, i) => (
+  1094→            <motion.div key={day.day} variants={fadeUp}>
+  1095→              <div className={`weekly-card-shine bg-white/[0.02] border rounded-2xl overflow-hidden transition-all duration-300 hover:bg-white/[0.03] backdrop-blur-sm ${
+  1096→                i === 0 ? 'border-amber-500/20 shadow-[0_0_20px_-5px_rgba(245,158,11,0.06)]' : 'border-white/[0.04] hover:border-white/[0.07]'
+  1097→              }`}>
+  1098→                <div className="flex flex-col sm:flex-row">
+  1099→                  {/* Day column */}
+  1100→                  <div className={`sm:w-40 flex-shrink-0 p-4 sm:p-5 flex flex-col justify-center items-center sm:items-start border-b sm:border-b-0 sm:border-r border-white/[0.04] ${i === 0 ? 'bg-amber-500/[0.03]' : ''}`}>
+  1101→                    <div className="flex items-center gap-2">
+  1102→                      {i === 0 && <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />}
+  1103→                      <span className={`text-sm font-bold ${i === 0 ? 'text-amber-300' : 'text-white/60'}`}>{day.dayLabel}</span>
+  1104→                    </div>
+  1105→                    <span className="text-[10px] text-white/25 mt-0.5 font-mono">{day.dateStr}</span>
+  1106→                    <div className="flex gap-1 mt-2">
+  1107→                      {day.outfit.estilo.slice(0, 2).map(e => <Badge key={e} className={`text-[8px] px-1.5 py-0 border-0 ${i === 0 ? 'bg-amber-500/10 text-amber-400/70' : 'bg-white/[0.03] text-white/20'}`}>{LABELS.estilo[e as keyof typeof LABELS.estilo]}</Badge>)}
+  1108→                    </div>
+  1109→                  </div>
+  1110→                  {/* Outfit column */}
+  1111→                  <div className="flex-1 p-4 sm:p-5 flex items-center gap-4">
+  1112→                    <div className="flex -space-x-1 flex-shrink-0">
+  1113→                      {day.garments.slice(0, 4).map(g => (
+  1114→                        <div key={g.id} className="w-10 h-10 rounded-xl border border-white/[0.06] bg-white/[0.02] flex items-center justify-center text-lg shadow-sm" title={g.nombre}>
+  1115→                          {g.emoji}
+  1116→                        </div>
+  1117→                      ))}
+  1118→                      {day.garments.length > 4 && <div className="w-10 h-10 rounded-xl border border-white/[0.04] bg-white/[0.02] flex items-center justify-center text-[10px] text-white/25 font-bold">+{day.garments.length - 4}</div>}
+  1119→                    </div>
+  1120→                    <div className="flex-1 min-w-0">
+  1121→                      <h3 className={`text-sm font-semibold truncate ${i === 0 ? 'text-amber-200' : 'text-white/75 group-hover:text-white/90'}`}>{day.outfit.nombre}</h3>
+  1122→                      <p className="text-[11px] text-white/25 mt-0.5 line-clamp-1">{day.outfit.descripcion}</p>
+  1123→                      <div className="flex items-center gap-2 mt-2">
+  1124→                        <div className="flex -space-x-1">{day.outfit.paletaColores.slice(0, 5).map((c, j) => <div key={j} className="w-4 h-4 rounded-full border border-[#0a0a0b]" style={{ backgroundColor: c }} />)}</div>
+  1125→                        <span className={`text-[10px] font-bold tabular-nums ${day.score >= 80 ? 'text-emerald-400/60' : 'text-white/15'}`}>{Math.round(day.score)}%</span>
+  1126→                      </div>
+  1127→                    </div>
+  1128→                    <div className="flex items-center gap-1 flex-shrink-0">
+  1129→                      <button onClick={() => { const s: Suggestion = { outfit: day.outfit, garments: day.garments, score: day.score, matchDetails: { ocasion: true, momento: true, clima: true, estilo: true } }; onViewDetail(s); }} className="h-8 w-8 rounded-lg flex items-center justify-center text-white/15 hover:text-amber-400 hover:bg-amber-500/5 transition-all">
+  1130→                        <Eye className="h-3.5 w-3.5" />
+  1131→                      </button>
+  1132→                      <button onClick={() => onToggleFav(day.outfit.id)} className={`h-8 w-8 rounded-lg flex items-center justify-center transition-all ${isFav(day.outfit.id) ? 'text-rose-400' : 'text-white/10 hover:text-rose-400'}`}>
+  1133→                        <Heart className={`h-3.5 w-3.5 ${isFav(day.outfit.id) ? 'fill-rose-400' : ''}`} />
+  1134→                      </button>
+  1135→                    </div>
+  1136→                  </div>
+  1137→                </div>
+  1138→              </div>
+  1139→            </motion.div>
+  1140→          ))}
+  1141→        </motion.div>
+  1142→      )}
+  1143→    </div>
+  1144→  );
+  1145→}
+  1146→
+  1147→/* ============================================================
+  1148→   WARDROBE SECTION
+  1149→   ============================================================ */
+  1150→function WardrobeSection() {
+  1151→  const [items, setItems] = useState<Array<Record<string, unknown>>>([]);
+  1152→  const [allItems, setAllItems] = useState<Array<Record<string, unknown>>>([]);
+  1153→  const [category, setCategory] = useState<string | null>(null);
+  1154→  const [selectedGarment, setSelectedGarment] = useState<Record<string, unknown> | null>(null);
+  1155→  const [relatedOutfits, setRelatedOutfits] = useState<OutfitBasic[]>([]);
+  1156→
+  1157→  useEffect(() => {
+  1158→    let cancelled = false;
+  1159→    (async () => {
+  1160→      try {
+  1161→        const res = await fetch('/api/wardrobe');
+  1162→        const data = await res.json();
+  1163→        if (!cancelled) { setAllItems(data.prendas || []); setItems(data.prendas || []); }
+  1164→      } catch (e) { console.error(e); }
+  1165→    })();
+  1166→    return () => { cancelled = true; };
+  1167→  }, []);
+  1168→
+  1169→  const handleCategory = (cat: string | null) => {
+  1170→    setCategory(cat); setSelectedGarment(null);
+  1171→    if (cat) setItems(allItems.filter((i) => i.categoria === cat));
+  1172→    else setItems(allItems);
+  1173→  };
+  1174→
+  1175→  const handleGarmentClick = useCallback(async (item: Record<string, unknown>) => {
+  1176→    setSelectedGarment(item);
+  1177→    try {
+  1178→      const res = await fetch('/api/outfits?limit=130');
+  1179→      const data = await res.json();
+  1180→      const allOutfits: OutfitBasic[] = data.outfits || [];
+  1181→      const itemId = item.id as string;
+  1182→      const related = allOutfits.filter(o => {
+  1183→        const ids = [o.prendaSuperior, o.pantalon, o.calzado, o.corbata, o.abrigo, ...(o.accesorios || [])].filter(Boolean);
+  1184→        return ids.includes(itemId);
+  1185→      });
+  1186→      setRelatedOutfits(related);
+  1187→    } catch (e) { console.error(e); }
+  1188→  }, []);
+  1189→
+  1190→  const getCount = (catId: string | null) => {
+  1191→    if (!catId) return allItems.length;
+  1192→    return allItems.filter((i) => i.categoria === catId).length;
+  1193→  };
+  1194→
+  1195→  return (
+  1196→    <div className="space-y-5">
+  1197→      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+  1198→        <div className="flex items-center justify-between">
+  1199→          <div>
+  1200→            <h2 className="text-lg font-bold text-white/90">Inventario de Guardarropa</h2>
+  1201→            <p className="text-xs text-white/25 mt-0.5">{allItems.length} prendas en 8 categorias</p>
+  1202→          </div>
+  1203→          <div className="text-[10px] text-white/15 font-mono bg-white/[0.02] px-2.5 py-1 rounded-lg border border-white/[0.04]">{items.length} prendas</div>
+  1204→        </div>
+  1205→        <div className="flex flex-wrap gap-1.5 mt-4">
+  1206→          {CATEGORIES.map(cat => {
+  1207→            const count = getCount(cat.id);
+  1208→            const isActive = category === cat.id;
+  1209→            return (
+  1210→              <Button key={cat.id || 'all'} variant="outline" size="sm"
+  1211→                className={`rounded-xl text-xs h-9 px-3 gap-1.5 transition-all duration-200 border ${isActive ? 'bg-white/[0.06] border-white/[0.12] text-white shadow-sm' : 'border-white/[0.03] text-white/30 hover:text-white/55 hover:bg-white/[0.03]'}`}
+  1212→                onClick={() => handleCategory(cat.id)}>
+  1213→                <span>{cat.emoji}</span><span>{cat.label}</span>
+  1214→                <Badge variant="secondary" className={`h-4 min-w-4 px-1 text-[9px] font-bold rounded ${isActive ? 'bg-white/[0.08] text-white/60' : 'bg-white/[0.02] text-white/15'}`}>{count}</Badge>
+  1215→              </Button>
+  1216→            );
+  1217→          })}
+  1218→        </div>
+  1219→      </motion.div>
+  1220→      <motion.div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3" variants={stagger} initial="initial" animate="animate">
+  1221→        {items.map(item => (
+  1222→          <motion.div key={item.id as string} variants={fadeUp} layout>
+  1223→            <div onClick={() => handleGarmentClick(item)}
+  1224→              className={`group bg-white/[0.015] border rounded-2xl p-4 transition-all duration-300 cursor-pointer hover:bg-white/[0.04] ${selectedGarment?.id === item.id ? 'border-amber-500/25 shadow-[0_0_20px_-5px_rgba(245,158,11,0.05)]' : 'border-white/[0.03] hover:border-white/[0.07]'}`}>
+  1225→              <div className="flex items-start justify-between mb-3">
+  1226→                <span className="text-3xl drop-shadow-lg transition-transform group-hover:scale-110 duration-300">{item.emoji as string}</span>
+  1227→                <div className="flex flex-col items-end gap-1.5">
+  1228→                  <div className="w-7 h-7 rounded-full border-2 border-white/[0.06] shadow-inner transition-transform group-hover:scale-110 duration-300" style={{ backgroundColor: item.colorHex as string }} />
+  1229→                  <span className="text-[9px] text-white/10 font-mono">{item.id as string}</span>
+  1230→                </div>
+  1231→              </div>
+  1232→              <h3 className="text-[11px] font-medium text-white/65 line-clamp-2 leading-relaxed group-hover:text-white/80 transition-colors">{item.nombre as string}</h3>
+  1233→              {(item.notas as string) && <p className="text-[9px] text-white/12 mt-1 line-clamp-1 italic">{item.notas as string}</p>}
+  1234→              <div className="mt-2.5 flex items-center justify-between">
+  1235→                <span className="text-[10px] text-white/20 font-medium">{item.color as string}</span>
+  1236→                <div className="flex gap-[3px]">
+  1237→                  {Array.from({ length: 5 }).map((_, j) => (
+  1238→                    <div key={j} className={`w-[3px] h-3.5 rounded-full transition-all duration-300 ${j < (item.formalidad as number) ? 'bg-amber-500/40' : 'bg-white/[0.03]'}`} />
+  1239→                  ))}
+  1240→                </div>
+  1241→              </div>
+  1242→            </div>
+  1243→          </motion.div>
+  1244→        ))}
+  1245→      </motion.div>
+  1246→      <AnimatePresence>
+  1247→        {selectedGarment && (
+  1248→          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="border-t border-white/[0.04] pt-5">
+  1249→            <h3 className="text-sm font-semibold text-white/75 mb-1">Outfits con esta prenda</h3>
+  1250→            <p className="text-[11px] text-white/25 mb-3">{relatedOutfits.length} outfits utilizan esta prenda</p>
+  1251→            <div className="flex flex-wrap gap-2">
+  1252→              {relatedOutfits.slice(0, 12).map(o => (
+  1253→                <div key={o.id} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.025] border border-white/[0.04] hover:bg-white/[0.04] transition-colors">
+  1254→                  <div className="flex -space-x-1">{o.paletaColores.slice(0, 3).map((c, i) => <div key={i} className="w-3.5 h-3.5 rounded-full border border-[#0a0a0b]" style={{ backgroundColor: c }} />)}</div>
+  1255→                  <span className="text-[10px] text-white/40 font-medium">{o.nombre}</span>
+  1256→                </div>
+  1257→              ))}
+  1258→            </div>
+  1259→          </motion.div>
+  1260→        )}
+  1261→      </AnimatePresence>
+  1262→    </div>
+  1263→  );
+  1264→}
+  1265→
+  1266→/* ============================================================
+  1267→   EXPLORE SECTION
+  1268→   ============================================================ */
+  1269→function ExploreSection({ favs, isFav, onToggleFav, onViewDetail }: { favs: string[]; isFav: (id: string) => boolean; onToggleFav: (id: string) => void; onViewDetail: (s: Suggestion) => void }) {
+  1270→  const [allOutfits, setAllOutfits] = useState<OutfitBasic[]>([]);
+  1271→  const [exploreLoading, setExploreLoading] = useState(false);
+  1272→  const [filterOcasion, setFilterOcasion] = useState<string | null>(null);
+  1273→  const [filterEstilo, setFilterEstilo] = useState<string | null>(null);
+  1274→  const [searchExplore, setSearchExplore] = useState('');
+  1275→  const [expandedId, setExpandedId] = useState<string | null>(null);
+  1276→  const [counts, setCounts] = useState<Record<string, number>>({});
+  1277→
+  1278→  const loadAll = useCallback(async () => {
+  1279→    setExploreLoading(true);
+  1280→    try {
+  1281→      const res = await fetch('/api/outfits?limit=130');
+  1282→      const data = await res.json();
+  1283→      const outfits: OutfitBasic[] = data.outfits || [];
+  1284→      setAllOutfits(outfits);
+  1285→      const c: Record<string, number> = { total: outfits.length };
+  1286→      outfits.forEach((o) => { o.ocasion.forEach((oc) => { c[oc] = (c[oc] || 0) + 1; }); o.estilo.forEach((es) => { c[es] = (c[es] || 0) + 1; }); });
+  1287→      setCounts(c);
+  1288→    } catch (e) { console.error(e); }
+  1289→    finally { setExploreLoading(false); }
+  1290→  }, []);
+  1291→
+  1292→  useEffect(() => { loadAll(); }, [loadAll]);
+  1293→
+  1294→  const filtered = useMemo(() => {
+  1295→    let result = allOutfits;
+  1296→    if (filterOcasion) result = result.filter(o => o.ocasion.includes(filterOcasion));
+  1297→    if (filterEstilo) result = result.filter(o => o.estilo.includes(filterEstilo));
+  1298→    if (searchExplore.trim()) { const q = searchExplore.toLowerCase(); result = result.filter(o => o.nombre.toLowerCase().includes(q) || o.descripcion.toLowerCase().includes(q)); }
+  1299→    return result;
+  1300→  }, [allOutfits, filterOcasion, filterEstilo, searchExplore]);
+  1301→
+  1302→  return (
+  1303→    <div className="space-y-5">
+  1304→      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+  1305→        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+  1306→          <div>
+  1307→            <h2 className="text-lg font-bold text-white/90 flex items-center gap-2"><Compass className="h-5 w-5 text-amber-400" />Explorar Combinaciones</h2>
+  1308→            <p className="text-xs text-white/25 mt-0.5">{filtered.length} de {counts.total || 0} outfits</p>
+  1309→          </div>
+  1310→          <div className="relative w-full sm:w-64">
+  1311→            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/15" />
+  1312→            <Input placeholder="Buscar outfit..." value={searchExplore} onChange={e => setSearchExplore(e.target.value)}
+  1313→              className="h-8 pl-8 pr-8 text-xs bg-white/[0.025] border-white/[0.05] rounded-xl text-white/65 placeholder:text-white/15 focus:border-amber-500/25" />
+  1314→            {searchExplore && <button onClick={() => setSearchExplore('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-white/15 hover:text-white/40"><X className="h-3 w-3" /></button>}
+  1315→          </div>
+  1316→        </div>
+  1317→        <div className="flex flex-wrap gap-1.5 mt-4">
+  1318→          {[{ value: null, label: 'Todas' }, { value: 'oficina', label: 'Oficina' }, { value: 'oficina_casual', label: 'Casual' }, { value: 'salida', label: 'Salida' }, { value: 'after_office', label: 'After Office' }, { value: 'fin_de_semana', label: 'Fin de Semana' }].map(v => {
+  1319→            const isActive = filterOcasion === v.value;
+  1320→            const count = v.value ? (counts[v.value] || 0) : (counts.total || 0);
+  1321→            return (
+  1322→              <Button key={v.value || 'all'} size="sm"
+  1323→                className={`rounded-xl text-[11px] h-8 px-3 gap-1.5 transition-all duration-200 border ${isActive ? 'bg-white/[0.06] border-white/[0.12] text-white shadow-sm' : 'border-white/[0.03] text-white/30 hover:text-white/55 hover:bg-white/[0.03]'}`}
+  1324→                onClick={() => setFilterOcasion(v.value)}>
+  1325→                {v.label}<span className={`text-[9px] font-bold px-1.5 py-0 rounded-md ${isActive ? 'bg-white/[0.08] text-white/60' : 'bg-white/[0.02] text-white/15'}`}>{count}</span>
+  1326→              </Button>
+  1327→            );
+  1328→          })}
+  1329→        </div>
+  1330→        <div className="flex flex-wrap gap-1.5 mt-2">
+  1331→          {ESTILO_OPTS.map(opt => {
+  1332→            const isActive = filterEstilo === opt.value;
+  1333→            return (
+  1334→              <button key={opt.value} onClick={() => setFilterEstilo(isActive ? null : opt.value)}
+  1335→                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[10px] font-medium transition-all duration-200 ${
+  1336→                  isActive ? `border-white/[0.12] bg-white/[0.06] ${opt.color}` : 'border-white/[0.03] text-white/25 hover:text-white/45 hover:bg-white/[0.02]'
+  1337→                }`}>
+  1338→                {opt.icon}{opt.label}
+  1339→              </button>
+  1340→            );
+  1341→          })}
+  1342→        </div>
+  1343→      </motion.div>
+  1344→      {exploreLoading ? (
+  1345→        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-28 bg-white/[0.02] rounded-xl border border-white/[0.03]" />)}</div>
+  1346→      ) : (
+  1347→        <motion.div className="grid grid-cols-1 md:grid-cols-2 gap-3" variants={stagger} initial="initial" animate="animate">
+  1348→          {filtered.map(outfit => (
+  1349→            <motion.div key={outfit.id} variants={fadeUp} layout>
+  1350→              <Card className={`weekly-card-shine bg-white/[0.02] border rounded-xl overflow-hidden cursor-pointer transition-all duration-300 group backdrop-blur-sm ${expandedId === outfit.id ? 'border-amber-500/20 shadow-[0_0_20px_-5px_rgba(245,158,11,0.05)]' : 'border-white/[0.04] hover:border-white/[0.07] hover:bg-white/[0.025]'}`}
+  1351→                onClick={() => setExpandedId(expandedId === outfit.id ? null : outfit.id)}>
+  1352→                <CardContent className="p-4">
+  1353→                  <div className="flex items-start justify-between gap-3">
+  1354→                    <div className="flex-1 min-w-0">
+  1355→                      <h3 className="text-xs font-semibold text-white/75 group-hover:text-amber-200 transition-colors truncate">{outfit.nombre}</h3>
+  1356→                      <p className="text-[10px] text-white/25 line-clamp-2 mt-0.5 leading-relaxed">{outfit.descripcion}</p>
+  1357→                    </div>
+  1358→                    <div className="flex items-center gap-1 flex-shrink-0">
+  1359→                      <button onClick={(e) => { e.stopPropagation(); onToggleFav(outfit.id); }} className={`h-6 w-6 flex items-center justify-center rounded-md transition-all ${isFav(outfit.id) ? 'text-rose-400' : 'text-white/[0.06] hover:text-rose-400'}`}>
+  1360→                        <Heart className={`h-3 w-3 ${isFav(outfit.id) ? 'fill-rose-400' : ''}`} />
+  1361→                      </button>
+  1362→                      <ChevronRight className={`h-4 w-4 text-white/10 transition-transform duration-300 ${expandedId === outfit.id ? 'rotate-90 text-amber-400' : ''}`} />
+  1363→                    </div>
+  1364→                  </div>
+  1365→                  <div className="flex items-center gap-1.5 mt-3">
+  1366→                    <div className="flex -space-x-1">
+  1367→                      {outfit.paletaColores.slice(0, 4).map((c, i) => <div key={i} className="w-4 h-4 rounded-full border border-[#0a0a0b]" style={{ backgroundColor: c }} />)}
+  1368→                      {outfit.paletaColores.length > 4 && <div className="w-4 h-4 rounded-full bg-white/[0.04] border border-[#0a0a0b] flex items-center justify-center text-[7px] text-white/25 font-bold">+{outfit.paletaColores.length - 4}</div>}
+  1369→                    </div>
+  1370→                    <div className="flex-1" />
+  1371→                    <div className="flex gap-1">
+  1372→                      {outfit.estilo.slice(0, 2).map((e) => <Badge key={e} className="bg-white/[0.025] text-white/20 text-[8px] px-1.5 py-0 border-0 font-medium">{LABELS.estilo[e as keyof typeof LABELS.estilo]}</Badge>)}
+  1373→                    </div>
+  1374→                  </div>
+  1375→                  {expandedId === outfit.id && (
+  1376→                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-3 pt-3 border-t border-white/[0.04] space-y-2">
+  1377→                      <div className="flex flex-wrap gap-1">
+  1378→                        {outfit.ocasion.map((o) => <Badge key={o} className="bg-emerald-500/6 text-emerald-400/70 text-[9px] px-1.5 py-0 border-emerald-500/8 font-medium">{LABELS.ocasion[o as keyof typeof LABELS.ocasion]}</Badge>)}
+  1379→                        {outfit.momento.map((m) => <Badge key={m} className="bg-sky-500/6 text-sky-400/70 text-[9px] px-1.5 py-0 border-sky-500/8 font-medium">{LABELS.momento[m as keyof typeof LABELS.momento]}</Badge>)}
+  1380→                        {outfit.clima.map((c) => <Badge key={c} className="bg-orange-500/6 text-orange-400/70 text-[9px] px-1.5 py-0 border-orange-500/8 font-medium">{LABELS.clima[c as keyof typeof LABELS.clima]}</Badge>)}
+  1381→                      </div>
+  1382→                      <Button variant="outline" size="sm" className="w-full rounded-xl border-white/[0.05] text-white/35 hover:text-amber-400 hover:border-amber-500/20 text-[10px] gap-1.5 mt-2" onClick={(e) => {
+  1383→                        e.stopPropagation();
+  1384→                        fetch(`/api/outfits/${outfit.id}`).then(r => r.json()).then(data => { if (data.success) onViewDetail({ outfit: data.outfit, garments: data.garments, score: 0, matchDetails: { ocasion: true, momento: true, clima: true, estilo: true } }); });
+  1385→                      }}>
+  1386→                        <Eye className="h-3 w-3" /> Ver Detalle
+  1387→                      </Button>
+  1388→                    </motion.div>
+  1389→                  )}
+  1390→                </CardContent>
+  1391→              </Card>
+  1392→            </motion.div>
+  1393→          ))}
+  1394→        </motion.div>
+  1395→      )}
+  1396→    </div>
+  1397→  );
+  1398→}
+  1399→
+  1400→/* ============================================================
+  1401→   FAVORITES SECTION (Fixed: uses /api/outfits instead of /api/suggest)
+  1402→   ============================================================ */
+  1403→function FavoritesSection({ favs, isFav, onToggleFav, onViewDetail }: { favs: string[]; isFav: (id: string) => boolean; onToggleFav: (id: string) => void; onViewDetail: (s: Suggestion) => void }) {
+  1404→  const [items, setItems] = useState<Suggestion[]>([]);
+  1405→  const [loading, setLoading] = useState(false);
+  1406→
+  1407→  useEffect(() => {
+  1408→    if (favs.length === 0) { setItems([]); return; }
+  1409→    setLoading(true);
+  1410→    (async () => {
+  1411→      try {
+  1412→        const res = await fetch('/api/outfits?limit=130');
+  1413→        const data = await res.json();
+  1414→        const allOutfits: OutfitBasic[] = data.outfits || [];
+  1415→        const favOutfits = allOutfits.filter(o => favs.includes(o.id));
+  1416→        const withDetails = await Promise.all(favOutfits.map(async (o) => {
+  1417→          try {
+  1418→            const dRes = await fetch(`/api/outfits/${o.id}`);
+  1419→            const dData = await dRes.json();
+  1420→            if (dData.success) return { outfit: dData.outfit, garments: dData.garments, score: 0, matchDetails: { ocasion: true, momento: true, clima: true, estilo: true } } as Suggestion;
+  1421→          } catch {}
+  1422→          return { outfit: o, garments: [], score: 0, matchDetails: { ocasion: true, momento: true, clima: true, estilo: true } } as Suggestion;
+  1423→        }));
+  1424→        setItems(withDetails);
+  1425→      } catch (e) { console.error(e); }
+  1426→      finally { setLoading(false); }
+  1427→    })();
+  1428→  }, [favs]);
+  1429→
+  1430→  if (favs.length === 0) {
+  1431→    return (
+  1432→      <div className="flex flex-col items-center justify-center h-[50vh] text-center">
+  1433→        <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', duration: 0.6 }}>
+  1434→          <div className="w-20 h-20 rounded-3xl bg-rose-500/[0.04] border border-rose-500/[0.08] flex items-center justify-center mb-6 animate-float">
+  1435→            <Heart className="h-8 w-8 text-rose-500/15" />
+  1436→          </div>
+  1437→          <h2 className="text-xl font-semibold text-white/40 mb-2">Sin favoritos aun</h2>
+  1438→          <p className="text-sm text-white/20 max-w-sm">Haz clic en el corazon de cualquier outfit para guardarlo aqui.</p>
+  1439→        </motion.div>
+  1440→      </div>
+  1441→    );
+  1442→  }
+  1443→
+  1444→  return (
+  1445→    <div className="space-y-4">
+  1446→      <div className="flex items-center justify-between">
+  1447→        <div>
+  1448→          <h2 className="text-lg font-semibold text-white/90 flex items-center gap-2"><Heart className="h-5 w-5 text-rose-400" />Mis Favoritos</h2>
+  1449→          <p className="text-xs text-white/30">{items.length} outfits guardados</p>
+  1450→        </div>
+  1451→      </div>
+  1452→      {loading ? (
+  1453→        <div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-32 bg-white/[0.02] rounded-2xl" />)}</div>
+  1454→      ) : (
+  1455→        <motion.div className="space-y-3" variants={stagger} initial="initial" animate="animate">
+  1456→          {items.map(s => (
+  1457→            <motion.div key={s.outfit.id} variants={fadeUp}>
+  1458→              <Card className="weekly-card-shine bg-white/[0.02] border border-white/[0.04] rounded-2xl p-4 hover:bg-white/[0.035] transition-all duration-300 group backdrop-blur-sm cursor-pointer"
+  1459→                onClick={() => onViewDetail(s)}>
+  1460→                <div className="flex items-start gap-4">
+  1461→                  <div className="flex -space-x-1 flex-shrink-0 pt-1">
+  1462→                    {s.outfit.paletaColores.slice(0, 4).map((c, i) => (
+  1463→                      <div key={i} className="w-5 h-5 rounded-full border border-[#0a0a0b]" style={{ backgroundColor: c }} />
+  1464→                    ))}
+  1465→                  </div>
+  1466→                  <div className="flex-1 min-w-0">
+  1467→                    <h3 className="text-sm font-semibold text-white/75 group-hover:text-amber-300 transition-colors">{s.outfit.nombre}</h3>
+  1468→                    <p className="text-xs text-white/30 mt-1 line-clamp-1 leading-relaxed">{s.outfit.descripcion}</p>
+  1469→                    <div className="flex flex-wrap gap-1 mt-2">
+  1470→                      {s.outfit.estilo.map((e) => <Badge key={e} className="bg-violet-500/6 text-violet-400/70 text-[9px] px-1.5 py-0 border-violet-500/8 font-medium">{LABELS.estilo[e as keyof typeof LABELS.estilo]}</Badge>)}
+  1471→                      {s.outfit.clima.map((c) => <Badge key={c} className="bg-orange-500/6 text-orange-400/70 text-[9px] px-1.5 py-0 border-orange-500/8 font-medium">{LABELS.clima[c as keyof typeof LABELS.clima]}</Badge>)}
+  1472→                    </div>
+  1473→                  </div>
+  1474→                  <button onClick={(e) => { e.stopPropagation(); onToggleFav(s.outfit.id); }} className={`h-8 w-8 flex items-center justify-center rounded-lg flex-shrink-0 transition-all ${isFav(s.outfit.id) ? 'text-rose-400' : 'text-white/[0.06] hover:text-rose-400'}`}>
+  1475→                    <Heart className={`h-4 w-4 ${isFav(s.outfit.id) ? 'fill-rose-400' : ''}`} />
+  1476→                  </button>
+  1477→                </div>
+  1478→              </Card>
+  1479→            </motion.div>
+  1480→          ))}
+  1481→        </motion.div>
+  1482→      )}
+  1483→    </div>
+  1484→  );
+  1485→}
+  1486→
+  1487→/* ============================================================
+  1488→   STATS SECTION
+  1489→   ============================================================ */
+  1490→function StatsSection() {
+  1491→  const [allOutfits, setAllOutfits] = useState<OutfitBasic[]>([]);
+  1492→  const [allGarments, setAllGarments] = useState<Array<Record<string, unknown>>>([]);
+  1493→  const [loading, setLoading] = useState(false);
+  1494→
+  1495→  useEffect(() => {
+  1496→    (async () => {
+  1497→      setLoading(true);
+  1498→      try {
+  1499→        const [oRes, gRes] = await Promise.all([fetch('/api/outfits?limit=130'), fetch('/api/wardrobe')]);
+  1500→        const [oData, gData] = await Promise.all([oRes.json(), gRes.json()]);
+  1501→        setAllOutfits(oData.outfits || []);
+  1502→        setAllGarments(gData.prendas || []);
+  1503→      } catch (e) { console.error(e); }
+  1504→      finally { setLoading(false); }
+  1505→    })();
+  1506→  }, []);
+  1507→
+  1508→  const stats = useMemo(() => {
+  1509→    const ocasionCount: Record<string, number> = {};
+  1510→    const estiloCount: Record<string, number> = {};
+  1511→    const momentoCount: Record<string, number> = {};
+  1512→    const climaCount: Record<string, number> = {};
+  1513→    const colorCount: Record<string, number> = {};
+  1514→    const garmentUsage: Record<string, number> = {};
+  1515→
+  1516→    allOutfits.forEach(o => {
+  1517→      o.ocasion.forEach(oc => { ocasionCount[oc] = (ocasionCount[oc] || 0) + 1; });
+  1518→      o.estilo.forEach(es => { estiloCount[es] = (estiloCount[es] || 0) + 1; });
+  1519→      o.momento.forEach(m => { momentoCount[m] = (momentoCount[m] || 0) + 1; });
+  1520→      o.clima.forEach(c => { climaCount[c] = (climaCount[c] || 0) + 1; });
+  1521→      o.paletaColores.forEach(c => { colorCount[c] = (colorCount[c] || 0) + 1; });
+  1522→      const ids = [o.prendaSuperior, o.pantalon, o.calzado, o.corbata, o.abrigo, ...(o.accesorios || [])].filter(Boolean);
+  1523→      ids.forEach(id => { garmentUsage[id] = (garmentUsage[id] || 0) + 1; });
+  1524→    });
+  1525→
+  1526→    const topColors = Object.entries(colorCount).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  1527→    const topGarments = Object.entries(garmentUsage).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  1528→    const maxOcasion = Math.max(...Object.values(ocasionCount), 1);
+  1529→    const maxEstilo = Math.max(...Object.values(estiloCount), 1);
+  1530→    const maxMomento = Math.max(...Object.values(momentoCount), 1);
+  1531→    const maxClima = Math.max(...Object.values(climaCount), 1);
+  1532→
+  1533→    // Average harmony
+  1534→    const avgHarmony = allOutfits.reduce((sum, o) => sum + getHarmonyScore(o.paletaColores).score, 0) / Math.max(allOutfits.length, 1);
+  1535→
+  1536→    return { ocasionCount, estiloCount, momentoCount, climaCount, colorCount, topColors, topGarments, maxOcasion, maxEstilo, maxMomento, maxClima, avgHarmony };
+  1537→  }, [allOutfits]);
+  1538→
+  1539→  if (loading) {
+  1540→    return <div className="space-y-4">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-40 bg-white/[0.02] rounded-2xl" />)}</div>;
+  1541→  }
+  1542→
+  1543→  const topGarmentNames = stats.topGarments.map(([id]) => {
+  1544→    const g = allGarments.find(x => x.id === id);
+  1545→    return g ? { id, nombre: g.nombre as string, emoji: g.emoji as string, colorHex: g.colorHex as string, count: stats.topGarments.find(x => x[0] === id)?.[1] || 0 } : { id, nombre: id, emoji: '?', colorHex: '#666', count: stats.topGarments.find(x => x[0] === id)?.[1] || 0 };
+  1546→  });
+  1547→
+  1548→  return (
+  1549→    <div className="space-y-6">
+  1550→      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+  1551→        <h2 className="text-lg font-bold text-white/90 flex items-center gap-2"><BarChart3 className="h-5 w-5 text-emerald-400" />Estadisticas del Guardarropa</h2>
+  1552→        <p className="text-xs text-white/25 mt-0.5">Analisis de tus 130 combinaciones y 46 prendas</p>
+  1553→      </motion.div>
+  1554→
+  1555→      {/* Summary cards */}
+  1556→      <motion.div className="grid grid-cols-2 sm:grid-cols-5 gap-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+  1557→        {[
+  1558→          { label: 'Total Outfits', value: allOutfits.length, icon: <ShirtIcon className="h-4 w-4" />, color: 'text-amber-400', bg: 'bg-amber-500/[0.06] border-amber-500/10' },
+  1559→          { label: 'Total Prendas', value: allGarments.length, icon: <Layers className="h-4 w-4" />, color: 'text-emerald-400', bg: 'bg-emerald-500/[0.06] border-emerald-500/10' },
+  1560→          { label: 'Estilos', value: Object.keys(stats.estiloCount).length, icon: <Palette className="h-4 w-4" />, color: 'text-violet-400', bg: 'bg-violet-500/[0.06] border-violet-500/10' },
+  1561→          { label: 'Colores Unicos', value: Object.keys(stats.colorCount).length, icon: <Gem className="h-4 w-4" />, color: 'text-sky-400', bg: 'bg-sky-500/[0.06] border-sky-500/10' },
+  1562→          { label: 'Armonia Prom.', value: Math.round(stats.avgHarmony), icon: <Star className="h-4 w-4" />, color: stats.avgHarmony >= 70 ? 'text-emerald-400' : 'text-amber-400', bg: stats.avgHarmony >= 70 ? 'bg-emerald-500/[0.06] border-emerald-500/10' : 'bg-amber-500/[0.06] border-amber-500/10' },
+  1563→        ].map(s => (
+  1564→          <Card key={s.label} className={`${s.bg} border rounded-xl p-4 backdrop-blur-sm`}>
+  1565→            <div className={`${s.color} mb-2`}>{s.icon}</div>
+  1566→            <div className={`text-2xl font-bold ${s.color} tabular-nums`}>{s.value}</div>
+  1567→            <div className="text-[10px] text-white/30 font-medium mt-0.5">{s.label}</div>
+  1568→          </Card>
+  1569→        ))}
+  1570→      </motion.div>
+  1571→
+  1572→      {/* Distribution charts */}
+  1573→      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+  1574→        {[
+  1575→          { title: 'Por Ocasion', data: stats.ocasionCount, max: stats.maxOcasion, icon: <MapPin className="h-3.5 w-3.5 text-emerald-400" />, gradient: 'from-emerald-500 to-emerald-400', labelKey: 'ocasion' as const },
+  1576→          { title: 'Por Estilo', data: stats.estiloCount, max: stats.maxEstilo, icon: <Crown className="h-3.5 w-3.5 text-violet-400" />, gradient: 'from-violet-500 to-purple-400', labelKey: 'estilo' as const },
+  1577→          { title: 'Por Momento', data: stats.momentoCount, max: stats.maxMomento, icon: <Clock className="h-3.5 w-3.5 text-sky-400" />, gradient: 'from-sky-500 to-cyan-400', labelKey: 'momento' as const },
+  1578→          { title: 'Por Clima', data: stats.climaCount, max: stats.maxClima, icon: <Flame className="h-3.5 w-3.5 text-orange-400" />, gradient: 'from-orange-500 to-amber-400', labelKey: 'clima' as const },
+  1579→        ].map((chart, i) => (
+  1580→          <motion.div key={chart.title} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.1 }}>
+  1581→            <Card className="bg-white/[0.015] border-white/[0.04] rounded-2xl p-5 backdrop-blur-sm">
+  1582→              <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2">{chart.icon}{chart.title}</h3>
+  1583→              <div className="space-y-3">
+  1584→                {Object.entries(chart.data).sort((a, b) => b[1] - a[1]).map(([key, count]) => (
+  1585→                  <div key={key}>
+  1586→                    <div className="flex items-center justify-between mb-1">
+  1587→                      <span className="text-[11px] text-white/50 font-medium">{LABELS[chart.labelKey][key as keyof typeof LABELS[typeof chart.labelKey]]}</span>
+  1588→                      <span className="text-[10px] text-white/25 font-mono tabular-nums">{count}</span>
+  1589→                    </div>
+  1590→                    <div className="h-2 rounded-full bg-white/[0.03] overflow-hidden">
+  1591→                      <motion.div initial={{ width: 0 }} animate={{ width: `${(count / chart.max) * 100}%` }} transition={{ duration: 0.8, delay: 0.3 + i * 0.1 }} className={`h-full rounded-full bg-gradient-to-r ${chart.gradient}`} />
+  1592→                    </div>
+  1593→                  </div>
+  1594→                ))}
+  1595→              </div>
+  1596→            </Card>
+  1597→          </motion.div>
+  1598→        ))}
+  1599→      </div>
+  1600→
+  1601→      {/* Top Colors */}
+  1602→      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
+  1603→        <Card className="bg-white/[0.015] border-white/[0.04] rounded-2xl p-5 backdrop-blur-sm">
+  1604→          <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2"><Star className="h-3.5 w-3.5 text-amber-400" />Colores Mas Usados</h3>
+  1605→          <div className="space-y-2.5">
+  1606→            {stats.topColors.map(([color, count]) => (
+  1607→              <div key={color} className="flex items-center gap-3">
+  1608→                <div className="w-6 h-6 rounded-lg border border-white/[0.06] flex-shrink-0" style={{ backgroundColor: color }} />
+  1609→                <div className="flex-1 min-w-0">
+  1610→                  <div className="h-1.5 rounded-full bg-white/[0.03] overflow-hidden">
+  1611→                    <motion.div initial={{ width: 0 }} animate={{ width: `${(count / stats.topColors[0][1]) * 100}%` }} transition={{ duration: 0.6 }} className="h-full rounded-full" style={{ backgroundColor: color }} />
+  1612→                  </div>
+  1613→                </div>
+  1614→                <span className="text-[10px] text-white/25 font-mono w-6 text-right tabular-nums">{count}</span>
+  1615→              </div>
+  1616→            ))}
+  1617→          </div>
+  1618→        </Card>
+  1619→      </motion.div>
+  1620→
+  1621→      {/* Top Garments */}
+  1622→      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
+  1623→        <Card className="bg-white/[0.015] border-white/[0.04] rounded-2xl p-5 backdrop-blur-sm">
+  1624→          <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2"><TrendingUp className="h-3.5 w-3.5 text-emerald-400" />Prendas Mas Versatiles</h3>
+  1625→          <div className="space-y-2">
+  1626→            {topGarmentNames.map((g, i) => (
+  1627→              <div key={g.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.015] border border-white/[0.03] hover:bg-white/[0.025] transition-colors">
+  1628→                <span className={`text-[10px] font-black w-5 text-center tabular-nums ${i === 0 ? 'text-amber-400' : 'text-white/15'}`}>#{i + 1}</span>
+  1629→                <span className="text-lg">{g.emoji}</span>
+  1630→                <div className="flex-1 min-w-0">
+  1631→                  <p className="text-[11px] text-white/60 font-medium truncate">{g.nombre}</p>
+  1632→                </div>
+  1633→                <div className="w-4 h-4 rounded-full border border-white/[0.06]" style={{ backgroundColor: g.colorHex }} />
+  1634→                <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/[0.03]">
+  1635→                  <Zap className="h-2.5 w-2.5 text-amber-400" />
+  1636→                  <span className="text-[10px] text-white/40 font-bold tabular-nums">{g.count}</span>
+  1637→                </div>
+  1638→              </div>
+  1639→            ))}
+  1640→          </div>
+  1641→        </Card>
+  1642→      </motion.div>
+  1643→    </div>
+  1644→  );
+  1645→}
+  1646→

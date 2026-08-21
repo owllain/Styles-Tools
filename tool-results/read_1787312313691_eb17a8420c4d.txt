@@ -1,0 +1,502 @@
+     1→'use client';
+     2→
+     3→import { useState, useCallback, useEffect, useMemo } from 'react';
+     4→import { motion, AnimatePresence } from 'framer-motion';
+     5→import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+     6→import { Button } from '@/components/ui/button';
+     7→import { Skeleton } from '@/components/ui/skeleton';
+     8→import { Badge } from '@/components/ui/badge';
+     9→import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+    10→import { Input } from '@/components/ui/input';
+    11→import { Separator } from '@/components/ui/separator';
+    12→import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+    13→import {
+    14→  Sparkles, Warehouse, RefreshCw, Eye, Layers, Palette, Dice5, Heart,
+    15→  SlidersHorizontal, Briefcase, Shirt, Sun, Moon, CloudSun, Flame, Snowflake,
+    16→  Wine, Music, Crown, Search, X, BarChart3, ChevronDown, ChevronRight,
+    17→  TrendingUp, ShirtIcon, Clock, MapPin, Zap, Star, Gem,
+    18→  Calendar, Copy, Check, Share2, ArrowLeftRight, Timer, Sparkle, Compass, Award
+    19→} from 'lucide-react';
+    20→import type { Ocasion, Momento, Clima, Estilo } from '@/data/types';
+    21→import { LABELS } from '@/data/types';
+    22→import { toast } from 'sonner';
+    23→
+    24→const FAVS_KEY = 'stylevault_favorites';
+    25→const HISTORY_KEY = 'stylevault_history';
+    26→const MAX_HISTORY = 20;
+    27→const WEEKLY_KEY = 'stylevault_weekly';
+    28→
+    29→interface GarmentDetail {
+    30→  id: string; nombre: string; emoji: string; color: string; colorHex: string;
+    31→}
+    32→interface Suggestion {
+    33→  outfit: { id: string; nombre: string; descripcion: string; ocasion: string[]; momento: string[]; clima: string[]; estilo: string[]; paletaColores: string[]; prendaSuperior?: string; pantalon?: string; calzado?: string; corbata?: string; abrigo?: string; accesorios?: string[] };
+    34→  score: number;
+    35→  matchDetails: { ocasion: boolean; momento: boolean; clima: boolean; estilo: boolean };
+    36→  garments: GarmentDetail[];
+    37→}
+    38→interface OutfitBasic { id: string; nombre: string; descripcion: string; ocasion: string[]; momento: string[]; clima: string[]; estilo: string[]; paletaColores: string[]; prendaSuperior?: string; pantalon?: string; calzado?: string; corbata?: string; abrigo?: string; accesorios?: string[]; }
+    39→interface WeeklyDay { day: string; dayLabel: string; dateStr: string; outfit: any; garments: GarmentDetail[]; score: number; }
+    40→
+    41→function useFavorites() {
+    42→  const [favs, setFavs] = useState<string[]>(() => {
+    43→    if (typeof window === 'undefined') return [];
+    44→    try { return JSON.parse(localStorage.getItem(FAVS_KEY) || '[]'); } catch { return []; }
+    45→  });
+    46→  const toggle = useCallback((id: string) => {
+    47→    setFavs(prev => {
+    48→      const next = prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id];
+    49→      localStorage.setItem(FAVS_KEY, JSON.stringify(next));
+    50→      return next;
+    51→    });
+    52→  }, []);
+    53→  const isFav = useCallback((id: string) => favs.includes(id), [favs]);
+    54→  return { favs, toggle, isFav };
+    55→}
+    56→
+    57→function useHistory() {
+    58→  const [history, setHistory] = useState<string[]>(() => {
+    59→    if (typeof window === 'undefined') return [];
+    60→    try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
+    61→  });
+    62→  const add = useCallback((id: string) => {
+    63→    setHistory(prev => {
+    64→      const next = [id, ...prev.filter(x => x !== id)].slice(0, MAX_HISTORY);
+    65→      localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+    66→      return next;
+    67→    });
+    68→  }, []);
+    69→  return { history, add };
+    70→}
+    71→
+    72→function getTimeGreeting() {
+    73→  const h = new Date().getHours();
+    74→  if (h < 6) return { text: 'Buenas noches', emoji: '\u{1F319}', sub: 'Aun es temprano para planificar' };
+    75→  if (h < 12) return { text: 'Buenos dias', emoji: '\u{2600}', sub: 'Comienza el dia con estilo' };
+    76→  if (h < 18) return { text: 'Buenas tardes', emoji: '\u{1F324}', sub: 'Tu guardarropa te espera' };
+    77→  return { text: 'Buenas noches', emoji: '\u{1F303}', sub: 'Planea tu proximo look' };
+    78→}
+    79→
+    80→function getHarmonyScore(colors: string[]): { score: number; label: string; description: string } {
+    81→  if (colors.length < 2) return { score: 50, label: 'Neutro', description: 'Datos insuficientes' };
+    82→  
+    83→  const hexToHSL = (hex: string) => {
+    84→    let r = parseInt(hex.slice(1, 3), 16) / 255;
+    85→    let g = parseInt(hex.slice(3, 5), 16) / 255;
+    86→    let b = parseInt(hex.slice(5, 7), 16) / 255;
+    87→    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    88→    let h = 0, s = 0, l = (max + min) / 2;
+    89→    if (max !== min) {
+    90→      const d = max - min;
+    91→      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    92→      if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+    93→      else if (max === g) h = ((b - r) / d + 2) / 6;
+    94→      else h = ((r - g) / d + 4) / 6;
+    95→    }
+    96→    return { h: h * 360, s: s * 100, l: l * 100 };
+    97→  };
+    98→
+    99→  const hueDiff = (a: number, b: number) => Math.abs(((a - b + 540) % 360) - 180);
+   100→
+   101→  const hslColors = colors.map(hexToHSL);
+   102→  const neutrals = hslColors.filter(c => c.s < 15);
+   103→  const chromatics = hslColors.filter(c => c.s >= 15);
+   104→
+   105→  let score = 60; // base
+   106→
+   107→  // Bonus for neutrals (they go with everything)
+   108→  score += Math.min(neutrals.length * 5, 10);
+   109→
+   110→  // Chromatic harmony
+   111→  if (chromatics.length >= 2) {
+   112→    const maxHueDiff = Math.max(...chromatics.flatMap((c, i) => chromatics.slice(i + 1).map(d => hueDiff(c.h, d.h))));
+   113→    const avgSat = chromatics.reduce((sum, c) => sum + c.s, 0) / chromatics.length;
+   114→    const avgLight = chromatics.reduce((sum, c) => sum + c.l, 0) / chromatics.length;
+   115→
+   116→    if (maxHueDiff < 30 || maxHueDiff > 330) score += 15; // Analogous
+   117→    else if (Math.abs(maxHueDiff - 180) < 30) score += 12; // Complementary
+   118→    else if (maxHueDiff > 90 && maxHueDiff < 270) score += 8; // Triadic area
+   119→    else score += 5;
+   120→
+   121→    if (avgSat < 40) score += 5; // Muted palette bonus
+   122→    if (avgLight > 20 && avgLight < 80) score += 5; // Good lightness range
+   123→  }
+   124→
+   125→  // Monochrome bonus (very intentional)
+   126→  const uniqueHues = new Set(hslColors.filter(c => c.s >= 15).map(c => Math.round(c.h / 15) * 15));
+   127→  if (uniqueHues.size <= 2 && hslColors.length >= 3) score += 8;
+   128→
+   129→  score = Math.min(Math.max(score, 30), 98);
+   130→
+   131→  if (score >= 85) return { score, label: 'Armonia Excelente', description: 'Paleta cohesiva y sofisticada' };
+   132→  if (score >= 70) return { score, label: 'Buena Armonia', description: 'Combinacion equilibrada y atractiva' };
+   133→  if (score >= 55) return { score, label: 'Armonia Moderada', description: 'Funcional con potencial de mejora' };
+   134→  return { score, label: 'Contraste Alto', description: 'Combinacion atrevida y audaz' };
+   135→}
+   136→
+   137→function copyOutfitToClipboard(outfit: OutfitBasic, garments: GarmentDetail[]) {
+   138→  const lines = [
+   139→    `\u{1F3AD} ${outfit.nombre}`,
+   140→    `${'─'.repeat(30)}`,
+   141→    outfit.descripcion,
+   142→    '',
+   143→    '\u{1F454} PRENDAS:',
+   144→    ...garments.map(g => `  ${g.emoji} ${g.nombre} (${g.color})`),
+   145→    '',
+   146→    `\u{1F3A8} Paleta: ${outfit.paletaColores.join(' ')}`,
+   147→    `\u{1F4CD} ${outfit.ocasion.map(o => LABELS.ocasion[o as keyof typeof LABELS.ocasion]).join(', ')}`,
+   148→    `\u{23F0} ${outfit.momento.map(m => LABELS.momento[m as keyof typeof LABELS.momento]).join(', ')}`,
+   149→    `\u{1F321} ${outfit.clima.map(c => LABELS.clima[c as keyof typeof LABELS.clima]).join(', ')}`,
+   150→    `\u{2728} ${outfit.estilo.map(e => LABELS.estilo[e as keyof typeof LABELS.estilo]).join(', ')}`,
+   151→    '',
+   152→    '— StyleVault para Enrique Cascante',
+   153→  ];
+   154→  navigator.clipboard.writeText(lines.join('\n')).then(() => {
+   155→    toast.success('Outfit copiado al portapapeles');
+   156→  }).catch(() => {
+   157→    toast.error('No se pudo copiar');
+   158→  });
+   159→}
+   160→
+   161→const PRESETS = [
+   162→  { name: 'Lunes de Oficina', emoji: '\u{1F4BC}', ocasion: 'oficina' as Ocasion, momento: 'dia' as Momento, clima: 'templado' as Clima, estilo: 'corporate' as Estilo },
+   163→  { name: 'Viernes Casual', emoji: '\u{2615}', ocasion: 'oficina_casual' as Ocasion, momento: 'tarde' as Momento, clima: 'templado' as Clima, estilo: 'old_money' as Estilo },
+   164→  { name: 'Concierto de Metal', emoji: '\u{1F3B5}', ocasion: 'salida' as Ocasion, momento: 'noche' as Momento, clima: 'frio' as Clima, estilo: 'rockero' as Estilo },
+   165→  { name: 'Cena Elegante', emoji: '\u{1F37D}', ocasion: 'after_office' as Ocasion, momento: 'noche' as Momento, clima: 'frio' as Clima, estilo: 'noir' as Estilo },
+   166→  { name: 'Sabado Relajado', emoji: '\u{26F8}', ocasion: 'fin_de_semana' as Ocasion, momento: 'dia' as Momento, clima: 'calor' as Clima, estilo: 'old_money' as Estilo },
+   167→  { name: 'Noche de Rock', emoji: '\u{26A1}', ocasion: 'salida' as Ocasion, momento: 'noche' as Momento, clima: 'frio' as Clima, estilo: 'rockero' as Estilo },
+   168→];
+   169→
+   170→const OCASION_OPTS: { value: Ocasion; icon: React.ReactNode; desc: string; accent: string }[] = [
+   171→  { value: 'oficina', icon: <Briefcase className="h-4 w-4" />, desc: 'Reunion, cliente, gerencia', accent: 'from-sky-500/20 to-sky-600/5' },
+   172→  { value: 'oficina_casual', icon: <Shirt className="h-4 w-4" />, desc: 'Viernes, home office', accent: 'from-emerald-500/20 to-emerald-600/5' },
+   173→  { value: 'salida', icon: <Sparkles className="h-4 w-4" />, desc: 'Concierto, bar, fiesta', accent: 'from-fuchsia-500/20 to-fuchsia-600/5' },
+   174→  { value: 'after_office', icon: <Wine className="h-4 w-4" />, desc: 'Cena, copas, transicion', accent: 'from-purple-500/20 to-purple-600/5' },
+   175→  { value: 'fin_de_semana', icon: <Sun className="h-4 w-4" />, desc: 'Sabado, domingo, relax', accent: 'from-amber-500/20 to-amber-600/5' },
+   176→];
+   177→const MOMENTO_OPTS: { value: Momento; icon: React.ReactNode }[] = [
+   178→  { value: 'dia', icon: <Sun className="h-4 w-4" /> },
+   179→  { value: 'tarde', icon: <CloudSun className="h-4 w-4" /> },
+   180→  { value: 'noche', icon: <Moon className="h-4 w-4" /> },
+   181→];
+   182→const CLIMA_OPTS: { value: Clima; icon: React.ReactNode }[] = [
+   183→  { value: 'frio', icon: <Snowflake className="h-4 w-4" /> },
+   184→  { value: 'templado', icon: <CloudSun className="h-4 w-4" /> },
+   185→  { value: 'calor', icon: <Flame className="h-4 w-4" /> },
+   186→];
+   187→const ESTILO_OPTS: { value: Estilo; icon: React.ReactNode; label: string; color: string }[] = [
+   188→  { value: 'noir', icon: <Gem className="h-3.5 w-3.5" />, label: 'Noir Sophistique', color: 'text-gray-300' },
+   189→  { value: 'old_money', icon: <Crown className="h-3.5 w-3.5" />, label: 'Old Money', color: 'text-amber-300' },
+   190→  { value: 'rockero', icon: <Music className="h-3.5 w-3.5" />, label: 'Rockero / Metal', color: 'text-red-400' },
+   191→  { value: 'corporate', icon: <Award className="h-3.5 w-3.5" />, label: 'Corporate Tech', color: 'text-sky-400' },
+   192→];
+   193→const CATEGORIES = [
+   194→  { id: null, label: 'Todas', emoji: '\u{1F454}' },
+   195→  { id: 'camisas_formales', label: 'Formales', emoji: '\u{1F454}' },
+   196→  { id: 'corbatas', label: 'Corbatas', emoji: '\u{1FA9E}' },
+   197→  { id: 'pantalones', label: 'Pantalones', emoji: '\u{1F456}' },
+   198→  { id: 'abrigos', label: 'Abrigos', emoji: '\u{1F9E5}' },
+   199→  { id: 'cuellos_tortuga', label: 'Tortuga', emoji: '\u{1F455}' },
+   200→  { id: 'henley_casual', label: 'Henley', emoji: '\u{1F4E5}' },
+   201→  { id: 'calzado', label: 'Calzado', emoji: '\u{1F97E}' },
+   202→  { id: 'accesorios', label: 'Accesorios', emoji: '\u{1F517}' },
+   203→];
+   204→
+   205→function getScoreColor(score: number) {
+   206→  if (score >= 80) return 'text-emerald-400';
+   207→  if (score >= 60) return 'text-amber-400';
+   208→  if (score >= 40) return 'text-orange-400';
+   209→  return 'text-white/40';
+   210→}
+   211→function getScoreBg(score: number) {
+   212→  if (score >= 80) return 'bg-emerald-500/10 border-emerald-500/20';
+   213→  if (score >= 60) return 'bg-amber-500/10 border-amber-500/20';
+   214→  if (score >= 40) return 'bg-orange-500/10 border-orange-500/20';
+   215→  return 'bg-white/[0.04] border-white/[0.08]';
+   216→}
+   217→function getScoreBarColor(score: number) {
+   218→  if (score >= 80) return 'bg-emerald-500';
+   219→  if (score >= 60) return 'bg-amber-500';
+   220→  if (score >= 40) return 'bg-orange-500';
+   221→  return 'bg-white/20';
+   222→}
+   223→
+   224→const fadeUp = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -8 } };
+   225→const stagger = { animate: { transition: { staggerChildren: 0.06 } } };
+   226→
+   227→export default function StyleVaultPage() {
+   228→  const [activeTab, setActiveTab] = useState('suggest');
+   229→  const [ocasion, setOcasion] = useState<Ocasion | null>(null);
+   230→  const [momento, setMomento] = useState<Momento | null>(null);
+   231→  const [clima, setClima] = useState<Clima | null>(null);
+   232→  const [estilo, setEstilo] = useState<Estilo | null>(null);
+   233→  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+   234→  const [loading, setLoading] = useState(false);
+   235→  const [totalAvailable, setTotalAvailable] = useState(0);
+   236→  const [totalInDb, setTotalInDb] = useState(130);
+   237→  const [selectedId, setSelectedId] = useState<string | null>(null);
+   238→  const [randomLoading, setRandomLoading] = useState(false);
+   239→  const [searchText, setSearchText] = useState('');
+   240→  const [detailOutfit, setDetailOutfit] = useState<Suggestion | null>(null);
+   241→  const [mobileSettingsOpen, setMobileSettingsOpen] = useState(true);
+   242→  const [compareIds, setCompareIds] = useState<string[]>([]);
+   243→  const [showComparison, setShowComparison] = useState(false);
+   244→  const [compareData, setCompareData] = useState<Suggestion[]>([]);
+   245→  const greeting = useMemo(getTimeGreeting, []);
+   246→  const { favs, toggle: toggleFav, isFav } = useFavorites();
+   247→  const { history, add: addHistory } = useHistory();
+   248→  const filterCount = [ocasion, momento, clima, estilo].filter(Boolean).length;
+   249→
+   250→  const getSuggestions = useCallback(async () => {
+   251→    setLoading(true);
+   252→    setSelectedId(null);
+   253→    try {
+   254→      const res = await fetch('/api/suggest', {
+   255→        method: 'POST', headers: { 'Content-Type': 'application/json' },
+   256→        body: JSON.stringify({ ocasion: ocasion || undefined, momento: momento || undefined, clima: clima || undefined, estilo: estilo || undefined, count: 8 }),
+   257→      });
+   258→      const data = await res.json();
+   259→      if (data.success) {
+   260→        setSuggestions(data.suggestions);
+   261→        setTotalAvailable(data.totalAvailable);
+   262→        setTotalInDb(data.totalInDatabase);
+   263→        data.suggestions.forEach((s: Suggestion) => addHistory(s.outfit.id));
+   264→      }
+   265→    } catch (e) { console.error(e); }
+   266→    finally { setLoading(false); }
+   267→  }, [ocasion, momento, clima, estilo, addHistory]);
+   268→
+   269→  const getRandomOutfit = useCallback(async () => {
+   270→    setRandomLoading(true);
+   271→    setSelectedId(null);
+   272→    try {
+   273→      const res = await fetch('/api/suggest', {
+   274→        method: 'POST', headers: { 'Content-Type': 'application/json' },
+   275→        body: JSON.stringify({ count: 1 }),
+   276→      });
+   277→      const data = await res.json();
+   278→      if (data.success && data.suggestions.length > 0) {
+   279→        setSuggestions(data.suggestions);
+   280→        setTotalAvailable(data.totalAvailable);
+   281→        setTotalInDb(data.totalInDatabase);
+   282→        addHistory(data.suggestions[0].outfit.id);
+   283→      }
+   284→    } catch (e) { console.error(e); }
+   285→    finally { setRandomLoading(false); }
+   286→  }, [addHistory]);
+   287→
+   288→  const applyPreset = useCallback((p: typeof PRESETS[number]) => {
+   289→    setOcasion(p.ocasion);
+   290→    setMomento(p.momento);
+   291→    setClima(p.clima);
+   292→    setEstilo(p.estilo);
+   293→  }, []);
+   294→
+   295→  const clearFilters = useCallback(() => {
+   296→    setOcasion(null); setMomento(null); setClima(null); setEstilo(null);
+   297→  }, []);
+   298→
+   299→  const filteredSuggestions = useMemo(() => {
+   300→    if (!searchText.trim()) return suggestions;
+   301→    const q = searchText.toLowerCase();
+   302→    return suggestions.filter(s => s.outfit.nombre.toLowerCase().includes(q) || s.outfit.descripcion.toLowerCase().includes(q));
+   303→  }, [suggestions, searchText]);
+   304→
+   305→  const toggleCompare = useCallback((id: string) => {
+   306→    setCompareIds(prev => {
+   307→      if (prev.includes(id)) return prev.filter(x => x !== id);
+   308→      if (prev.length >= 2) return [prev[1], id];
+   309→      return [...prev, id];
+   310→    });
+   311→  }, []);
+   312→
+   313→  const runComparison = useCallback(async () => {
+   314→    if (compareIds.length !== 2) return;
+   315→    setShowComparison(true);
+   316→    try {
+   317→      const results = await Promise.all(compareIds.map(id => fetch(`/api/outfits/${id}`).then(r => r.json())));
+   318→      const data: Suggestion[] = results.map(r => ({
+   319→        outfit: r.outfit, garments: r.garments, score: 0,
+   320→        matchDetails: { ocasion: true, momento: true, clima: true, estilo: true },
+   321→      }));
+   322→      setCompareData(data);
+   323→    } catch { toast.error('Error cargando outfits para comparar'); }
+   324→  }, [compareIds]);
+   325→
+   326→  return (
+   327→    <div className="min-h-screen flex flex-col noise-bg relative overflow-hidden bg-[#0a0a0b]">
+   328→      {/* Background orbs */}
+   329→      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+   330→        <div className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full bg-amber-900/[0.06] blur-[120px] animate-pulse-glow" />
+   331→        <div className="absolute top-1/3 -left-40 w-[500px] h-[500px] rounded-full bg-purple-900/[0.04] blur-[100px] animate-pulse-glow" style={{ animationDelay: '2s' }} />
+   332→        <div className="absolute -bottom-40 right-1/4 w-[400px] h-[400px] rounded-full bg-emerald-900/[0.03] blur-[100px] animate-pulse-glow" style={{ animationDelay: '4s' }} />
+   333→      </div>
+   334→
+   335→      <div className="relative z-10 min-h-screen flex flex-col">
+   336→        {/* Header */}
+   337→        <header className="border-b border-white/[0.05] bg-[#0a0a0b]/70 backdrop-blur-2xl sticky top-0 z-50">
+   338→          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+   339→            <div className="flex items-center gap-3">
+   340→              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 via-amber-700 to-amber-950 flex items-center justify-center shadow-lg shadow-amber-900/30 animate-gradient">
+   341→                <Warehouse className="h-4 w-4 text-amber-100" />
+   342→              </div>
+   343→              <div>
+   344→                <h1 className="text-base font-bold tracking-tight text-white">StyleVault</h1>
+   345→                <p className="text-[9px] text-white/25 -mt-0.5 tracking-[0.2em] uppercase font-medium">Enrique Cascante</p>
+   346→              </div>
+   347→            </div>
+   348→            <div className="flex items-center gap-2.5">
+   349→              {favs.length > 0 && (
+   350→                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-500/8 border border-rose-500/15">
+   351→                  <Heart className="h-3 w-3 text-rose-400 fill-rose-400" />
+   352→                  <span className="text-[10px] text-rose-300 font-semibold tabular-nums">{favs.length}</span>
+   353→                </div>
+   354→              )}
+   355→              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.025] border border-white/[0.05]">
+   356→                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
+   357→                <span className="text-[10px] text-white/35 font-medium">130 outfits</span>
+   358→              </div>
+   359→            </div>
+   360→          </div>
+   361→        </header>
+   362→
+   363→        <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
+   364→          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+   365→            <TabsList className="bg-white/[0.025] border border-white/[0.05] rounded-2xl p-1.5 w-full sm:w-auto backdrop-blur-sm">
+   366→              <TabsTrigger value="suggest" className="rounded-xl data-[state=active]:bg-amber-500/15 data-[state=active]:text-amber-400 data-[state=active]:shadow-[0_0_15px_rgba(245,158,11,0.08)] gap-1.5 text-xs sm:text-sm transition-all duration-300">
+   367→                <Sparkles className="h-3.5 w-3.5" /><span className="hidden sm:inline">Sugerencias</span><span className="sm:hidden">AI</span>
+   368→              </TabsTrigger>
+   369→              <TabsTrigger value="weekly" className="rounded-xl data-[state=active]:bg-white/10 data-[state=active]:text-white gap-1.5 text-xs sm:text-sm transition-all duration-300">
+   370→                <Calendar className="h-3.5 w-3.5" /><span className="hidden sm:inline">Semanal</span><span className="sm:hidden">Sem</span>
+   371→              </TabsTrigger>
+   372→              <TabsTrigger value="wardrobe" className="rounded-xl data-[state=active]:bg-white/10 data-[state=active]:text-white gap-1.5 text-xs sm:text-sm transition-all duration-300">
+   373→                <Layers className="h-3.5 w-3.5" /><span className="hidden sm:inline">Inventario</span><span className="sm:hidden">Ropa</span>
+   374→              </TabsTrigger>
+   375→              <TabsTrigger value="explore" className="rounded-xl data-[state=active]:bg-white/10 data-[state=active]:text-white gap-1.5 text-xs sm:text-sm transition-all duration-300">
+   376→                <Compass className="h-3.5 w-3.5" /><span className="hidden sm:inline">Explorar</span><span className="sm:hidden">All</span>
+   377→              </TabsTrigger>
+   378→              <TabsTrigger value="favorites" className="rounded-xl data-[state=active]:bg-rose-500/15 data-[state=active]:text-rose-400 gap-1.5 text-xs sm:text-sm transition-all duration-300">
+   379→                <Heart className="h-3.5 w-3.5" /><span className="hidden sm:inline">Favoritos</span><span className="sm:hidden">{'\u2764'}</span>
+   380→              </TabsTrigger>
+   381→              <TabsTrigger value="stats" className="rounded-xl data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-400 gap-1.5 text-xs sm:text-sm transition-all duration-300">
+   382→                <BarChart3 className="h-3.5 w-3.5" /><span className="hidden sm:inline">Estadisticas</span><span className="sm:hidden">{'\u{1F4CA}'}</span>
+   383→              </TabsTrigger>
+   384→            </TabsList>
+   385→
+   386→            {/* === SUGERENCIAS TAB === */}
+   387→            <TabsContent value="suggest" className="mt-6">
+   388→              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+   389→                <div className="lg:col-span-4 xl:col-span-3">
+   390→                  <div className="lg:sticky lg:top-24">
+   391→                    <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
+   392→                      <Card className="bg-white/[0.02] border-white/[0.05] rounded-2xl overflow-hidden backdrop-blur-sm shadow-xl shadow-black/10">
+   393→                        <CardHeader className="pb-3">
+   394→                          <div className="flex items-center justify-between">
+   395→                            <CardTitle className="text-sm font-semibold text-white/90 flex items-center gap-2">
+   396→                              <div className="w-6 h-6 rounded-md bg-amber-500/15 flex items-center justify-center">
+   397→                                <SlidersHorizontal className="h-3.5 w-3.5 text-amber-400" />
+   398→                              </div>
+   399→                              Configura tu Look
+   400→                            </CardTitle>
+   401→                            <div className="flex items-center gap-2">
+   402→                              <button className="lg:hidden text-white/30 hover:text-white/60 text-[10px]" onClick={() => setMobileSettingsOpen(v => !v)}>
+   403→                                <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${mobileSettingsOpen ? 'rotate-180' : ''}`} />
+   404→                              </button>
+   405→                              {filterCount > 0 && (
+   406→                                <Button variant="ghost" size="sm" className="text-[10px] text-white/30 hover:text-rose-400 h-6 px-2 rounded-lg hover:bg-rose-500/5 transition-colors" onClick={clearFilters}>
+   407→                                  Limpiar ({filterCount})
+   408→                                </Button>
+   409→                              )}
+   410→                            </div>
+   411→                          </div>
+   412→                          <CardDescription className="text-[11px] text-white/25">Selecciona el contexto para sugerencias inteligentes</CardDescription>
+   413→                        </CardHeader>
+   414→                        <CardContent className={`${mobileSettingsOpen ? '' : 'hidden lg:block'} space-y-4 pb-6`}>
+   415→                          {/* Look del Dia hero */}
+   416→                          <div className="relative rounded-2xl overflow-hidden border border-amber-500/10 bg-gradient-to-br from-amber-900/15 via-amber-950/10 to-transparent p-4 mb-2">
+   417→                            <div className="absolute top-2 right-2 text-[10px] font-medium text-amber-400/50 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/10">
+   418→                              <Timer className="h-2.5 w-2.5 inline mr-1 -mt-0.5" />{greeting.text.split(' ').pop()}
+   419→                            </div>
+   420→                            <p className="text-lg mb-0.5">{greeting.emoji}</p>
+   421→                            <p className="text-xs font-semibold text-white/70">{greeting.text}, Enrique</p>
+   422→                            <p className="text-[10px] text-white/30 mt-0.5">{greeting.sub}</p>
+   423→                            <Button size="sm" className="mt-3 h-8 bg-amber-600/80 hover:bg-amber-500 text-[11px] rounded-lg gap-1.5 shadow-lg shadow-amber-900/20 border border-amber-500/20" onClick={getRandomOutfit} disabled={randomLoading}>
+   424→                              {randomLoading ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Sparkle className="h-3 w-3" />}
+   425→                              Look del Dia
+   426→                            </Button>
+   427→                          </div>
+   428→
+   429→                          {/* Quick Presets */}
+   430→                          <div>
+   431→                            <label className="text-[10px] font-semibold text-white/30 uppercase tracking-[0.15em] mb-2 block">Quick Presets</label>
+   432→                            <div className="grid grid-cols-2 gap-1.5">
+   433→                              {PRESETS.map(p => (
+   434→                                <button key={p.name} onClick={() => applyPreset(p)}
+   435→                                  className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl border border-white/[0.04] bg-white/[0.015] hover:bg-white/[0.05] hover:border-white/[0.1] transition-all duration-200 text-left group">
+   436→                                  <span className="text-sm group-hover:scale-110 transition-transform duration-200">{p.emoji}</span>
+   437→                                  <span className="text-[10px] text-white/45 group-hover:text-white/75 font-medium leading-tight transition-colors">{p.name}</span>
+   438→                                </button>
+   439→                              ))}
+   440→                            </div>
+   441→                          </div>
+   442→                          <Separator className="bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+   443→                          {/* Ocasion */}
+   444→                          <div>
+   445→                            <label className="text-[10px] font-semibold text-white/30 uppercase tracking-[0.15em] mb-2.5 block">Ocasion</label>
+   446→                            <div className="space-y-1">
+   447→                              {OCASION_OPTS.map(opt => (
+   448→                                <button key={opt.value} onClick={() => setOcasion(ocasion === opt.value ? null : opt.value)}
+   449→                                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200 border ${
+   450→                                    ocasion === opt.value
+   451→                                      ? `bg-gradient-to-r ${opt.accent} border-white/10 text-white shadow-sm`
+   452→                                      : 'bg-white/[0.015] border-white/[0.03] text-white/40 hover:bg-white/[0.04] hover:text-white/60'
+   453→                                  }`}>
+   454→                                  <div className={`p-1.5 rounded-lg transition-colors ${ocasion === opt.value ? 'bg-white/10' : 'bg-white/[0.03]'}`}>{opt.icon}</div>
+   455→                                  <div className="flex-1 min-w-0">
+   456→                                    <div className="text-xs font-medium truncate">{LABELS.ocasion[opt.value]}</div>
+   457→                                    <div className={`text-[10px] mt-0.5 transition-colors ${ocasion === opt.value ? 'text-white/45' : 'text-white/18'}`}>{opt.desc}</div>
+   458→                                  </div>
+   459→                                  {ocasion === opt.value && <div className="w-1.5 h-1.5 rounded-full bg-white/60 shadow-[0_0_6px_rgba(255,255,255,0.3)]" />}
+   460→                                </button>
+   461→                              ))}
+   462→                            </div>
+   463→                          </div>
+   464→                          <Separator className="bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+   465→                          {/* Momento */}
+   466→                          <div>
+   467→                            <label className="text-[10px] font-semibold text-white/30 uppercase tracking-[0.15em] mb-2.5 block">Momento</label>
+   468→                            <div className="grid grid-cols-3 gap-1.5">
+   469→                              {MOMENTO_OPTS.map(opt => (
+   470→                                <button key={opt.value} onClick={() => setMomento(momento === opt.value ? null : opt.value)}
+   471→                                  className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border transition-all duration-200 ${
+   472→                                    momento === opt.value ? 'bg-white/[0.08] border-white/15 text-white shadow-sm' : 'bg-white/[0.015] border-white/[0.03] text-white/35 hover:bg-white/[0.04]'
+   473→                                  }`}>
+   474→                                  {opt.icon}<span className="text-[10px] font-medium">{LABELS.momento[opt.value]}</span>
+   475→                                </button>
+   476→                              ))}
+   477→                            </div>
+   478→                          </div>
+   479→                          <Separator className="bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+   480→                          {/* Clima */}
+   481→                          <div>
+   482→                            <label className="text-[10px] font-semibold text-white/30 uppercase tracking-[0.15em] mb-2.5 block">Clima</label>
+   483→                            <div className="grid grid-cols-3 gap-1.5">
+   484→                              {CLIMA_OPTS.map(opt => (
+   485→                                <button key={opt.value} onClick={() => setClima(clima === opt.value ? null : opt.value)}
+   486→                                  className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border transition-all duration-200 ${
+   487→                                    clima === opt.value ? 'bg-white/[0.08] border-white/15 text-white shadow-sm' : 'bg-white/[0.015] border-white/[0.03] text-white/35 hover:bg-white/[0.04]'
+   488→                                  }`}>
+   489→                                  {opt.icon}<span className="text-[10px] font-medium">{LABELS.clima[opt.value]}</span>
+   490→                                </button>
+   491→                              ))}
+   492→                            </div>
+   493→                          </div>
+   494→                          <Separator className="bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+   495→                          {/* Estetica */}
+   496→                          <div>
+   497→                            <label className="text-[10px] font-semibold text-white/30 uppercase tracking-[0.15em] mb-2.5 block">Estetica</label>
+   498→                            <div className="grid grid-cols-2 gap-1.5">
+   499→                              {ESTILO_OPTS.map(opt => (
+   500→                                <button key={opt.value} onClick={() => setEstilo(estilo === opt.value ? null : opt.value)}
+
+[showing lines 1-500 of 1603; use offset=501 with limit to continue reading]
