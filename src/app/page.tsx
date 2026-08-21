@@ -17,7 +17,7 @@ import {
   TrendingUp, ShirtIcon, Clock, MapPin, Zap, Star, Gem,
   Calendar, CalendarDays, Copy, Check, Share2, ArrowLeftRight, Timer, Sparkle, Compass, Award,
   MessageSquare, Send, CheckCircle2, UserCircle, Trash2, Thermometer, CloudRain, FolderOpen, Lock, Unlock, EyeOff,
-  Shuffle, Download, Upload, Keyboard, PenLine, BookmarkPlus, Plus, StickyNote, Info, ShirtIcon as ShirtIco, RotateCcw, Sparkles as SparklesIcon
+  Shuffle, Download, Upload, Keyboard, PenLine, BookmarkPlus, Plus, StickyNote, Info, ShirtIcon as ShirtIco, RotateCcw, Sparkles as SparklesIcon, LayoutGrid, List
 } from 'lucide-react';
 import type { Ocasion, Momento, Clima, Estilo } from '@/data/types';
 import { LABELS } from '@/data/types';
@@ -426,7 +426,7 @@ export default function StyleVaultPage() {
                 <Warehouse className="h-4 w-4 text-amber-100" />
               </div>
               <div>
-                <h1 className="text-base font-bold tracking-tight text-white">StyleVault</h1>
+                <h1 className="text-base font-bold tracking-tight text-white header-logo-shimmer">StyleVault</h1>
                 <p className="text-[9px] text-white/25 -mt-0.5 tracking-[0.2em] uppercase font-medium">Enrique Cascante</p>
               </div>
             </div>
@@ -521,9 +521,10 @@ export default function StyleVaultPage() {
                             <p className="text-lg mb-0.5">{greeting.emoji}</p>
                             <p className="text-xs font-semibold text-white/70">{greeting.text}, Enrique</p>
                             <p className="text-[10px] text-white/30 mt-0.5">{greeting.sub}</p>
-                            <Button size="sm" className="mt-3 h-8 bg-amber-600/80 hover:bg-amber-500 text-[11px] rounded-lg gap-1.5 shadow-lg shadow-amber-900/20 border border-amber-500/20" onClick={getRandomOutfit} disabled={randomLoading}>
-                              {randomLoading ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Sparkle className="h-3 w-3" />}
+                            <Button size="sm" className="mt-3 h-9 bg-gradient-to-r from-amber-600/90 to-amber-700/90 hover:from-amber-500 hover:to-amber-600 text-[11px] rounded-xl gap-2 shadow-lg shadow-amber-900/25 border border-amber-500/25 animate-pulse-glow transition-all duration-300" onClick={getRandomOutfit} disabled={randomLoading}>
+                              {randomLoading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Sparkle className="h-3.5 w-3.5" />}
                               Look del Dia
+                              <span className="text-[9px] text-amber-300/50 font-mono">RANDOM</span>
                             </Button>
                           </div>
 
@@ -798,7 +799,7 @@ export default function StyleVaultPage() {
               <div className="w-5 h-5 rounded-md bg-gradient-to-br from-amber-500/30 to-amber-900/25 flex items-center justify-center">
                 <Warehouse className="h-2.5 w-2.5 text-amber-400/70" />
               </div>
-              <p className="text-[11px] text-white/35 font-semibold tracking-tight">StyleVault <span className="text-amber-400/60">v9.0</span></p>
+              <p className="text-[11px] text-white/35 font-semibold tracking-tight">StyleVault <span className="text-amber-400/60">v10.0</span></p>
               <span className="text-white/10">|</span>
               <p className="text-[11px] text-white/25 font-medium">Enrique Cascante</p>
             </div>
@@ -812,7 +813,7 @@ export default function StyleVaultPage() {
               </div>
               <div className="hidden md:flex items-center gap-1.5 ml-2 pl-2.5 border-l border-white/[0.06]">
                 <Keyboard className="h-3 w-3 text-white/10" />
-                <span className="text-[10px] text-white/15">Notas + Preview</span>
+                <span className="text-[10px] text-white/15">Lookbook + Colecciones</span>
               </div>
             </div>
           </div>
@@ -1200,6 +1201,7 @@ function ComparisonDialog({ outfits, onClose }: { outfits: Suggestion[]; onClose
    WEEKLY PLANNER SECTION
    ============================================================ */
 function WeeklyPlannerSection({ favs, isFav, onToggleFav, onViewDetail }: { favs: string[]; isFav: (id: string) => boolean; onToggleFav: (id: string) => void; onViewDetail: (s: Suggestion) => void }) {
+  const DAY_ACCENT: Record<string, string> = { 'Lunes': 'rgba(212,168,67,0.4)', 'Martes': 'rgba(59,130,246,0.3)', 'Mi\u00e9rcoles': 'rgba(139,92,246,0.3)', 'Jueves': 'rgba(244,63,94,0.3)', 'Viernes': 'rgba(251,191,36,0.4)', 'S\u00e1bado': 'rgba(16,185,129,0.3)', 'Domingo': 'rgba(167,139,250,0.3)' };
   const [week, setWeek] = useState<WeeklyDay[]>([]);
   const [loading, setLoading] = useState(false);
   const [weeklyClima, setWeeklyClima] = useState<Clima | null>(null);
@@ -1262,9 +1264,9 @@ function WeeklyPlannerSection({ favs, isFav, onToggleFav, onViewDetail }: { favs
         <motion.div className="space-y-3" variants={stagger} initial="initial" animate="animate">
           {week.map((day, i) => (
             <motion.div key={day.day} variants={fadeUp}>
-              <div className={`weekly-card-shine bg-white/[0.02] border rounded-2xl overflow-hidden transition-all duration-300 hover:bg-white/[0.03] backdrop-blur-sm ${
+              <div className={`weekly-card-shine weekly-day-card bg-white/[0.02] border rounded-2xl overflow-hidden transition-all duration-300 hover:bg-white/[0.03] backdrop-blur-sm ${
                 i === 0 ? 'border-amber-500/20 shadow-[0_0_20px_-5px_rgba(245,158,11,0.06)]' : 'border-white/[0.04] hover:border-white/[0.07]'
-              }`}>
+              }`} style={{ '--day-accent': DAY_ACCENT[day.dayLabel] || 'rgba(255,255,255,0.1)' } as React.CSSProperties}>
                 <div className="flex flex-col sm:flex-row">
                   {/* Day column */}
                   <div className={`sm:w-40 flex-shrink-0 p-4 sm:p-5 flex flex-col justify-center items-center sm:items-start border-b sm:border-b-0 sm:border-r border-white/[0.04] ${i === 0 ? 'bg-amber-500/[0.03]' : ''}`}>
@@ -1574,6 +1576,7 @@ function ExploreSection({ favs, isFav, onToggleFav, onViewDetail }: { favs: stri
 function FavoritesSection({ favs, isFav, onToggleFav, onViewDetail }: { favs: string[]; isFav: (id: string) => boolean; onToggleFav: (id: string) => void; onViewDetail: (s: Suggestion) => void }) {
   const [items, setItems] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   useEffect(() => {
     if (favs.length === 0) { setItems([]); return; }
@@ -1616,35 +1619,70 @@ function FavoritesSection({ favs, isFav, onToggleFav, onViewDetail }: { favs: st
         <div>
           <h2 className="text-lg font-semibold text-white/90 flex items-center gap-2"><Heart className="h-5 w-5 text-rose-400" />Mis Favoritos</h2>
           <p className="text-xs text-white/30">{items.length} outfits guardados</p>
+          <div className="flex gap-1 ml-3">
+            <button onClick={() => setViewMode('list')} className={`h-7 w-7 rounded-lg flex items-center justify-center transition-all ${viewMode === 'list' ? 'bg-white/[0.06] text-white/60' : 'text-white/15 hover:text-white/30'}`} title="Lista">
+              <List className="h-3.5 w-3.5" />
+            </button>
+            <button onClick={() => setViewMode('grid')} className={`h-7 w-7 rounded-lg flex items-center justify-center transition-all ${viewMode === 'grid' ? 'bg-white/[0.06] text-white/60' : 'text-white/15 hover:text-white/30'}`} title="Galeria">
+              <LayoutGrid className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <button onClick={() => {
+            const exportData = items.map(s => ({ id: s.outfit.id, nombre: s.outfit.nombre, descripcion: s.outfit.descripcion, estilos: s.outfit.estilo, colores: s.outfit.paletaColores }));
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = 'stylevault-favoritos.json'; a.click(); URL.revokeObjectURL(url);
+            toast.success('Favoritos exportados');
+          }} className='h-7 w-7 rounded-lg flex items-center justify-center text-white/15 hover:text-white/40 hover:bg-white/[0.04] transition-all' title='Exportar JSON'>
+            <Download className='h-3.5 w-3.5' />
+          </button>
         </div>
       </div>
       {loading ? (
         <div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-32 bg-white/[0.02] rounded-2xl" />)}</div>
       ) : (
-        <motion.div className="space-y-3" variants={stagger} initial="initial" animate="animate">
+        <motion.div className={viewMode === 'grid' ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3' : 'space-y-3'} variants={stagger} initial="initial" animate="animate">
           {items.map(s => (
             <motion.div key={s.outfit.id} variants={fadeUp}>
-              <Card className="weekly-card-shine bg-white/[0.02] border border-white/[0.04] rounded-2xl p-4 hover:bg-white/[0.035] transition-all duration-300 group backdrop-blur-sm cursor-pointer"
-                onClick={() => onViewDetail(s)}>
-                <div className="flex items-start gap-4">
-                  <div className="flex -space-x-1 flex-shrink-0 pt-1">
-                    {s.outfit.paletaColores.slice(0, 4).map((c, i) => (
-                      <div key={i} className="w-5 h-5 rounded-full border border-[#0a0a0b]" style={{ backgroundColor: c }} />
-                    ))}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-semibold text-white/75 group-hover:text-amber-300 transition-colors">{s.outfit.nombre}</h3>
-                    <p className="text-xs text-white/30 mt-1 line-clamp-1 leading-relaxed">{s.outfit.descripcion}</p>
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {s.outfit.estilo.map((e) => <Badge key={e} className="bg-violet-500/6 text-violet-400/70 text-[9px] px-1.5 py-0 border-violet-500/8 font-medium">{LABELS.estilo[e as keyof typeof LABELS.estilo]}</Badge>)}
-                      {s.outfit.clima.map((c) => <Badge key={c} className="bg-orange-500/6 text-orange-400/70 text-[9px] px-1.5 py-0 border-orange-500/8 font-medium">{LABELS.clima[c as keyof typeof LABELS.clima]}</Badge>)}
-                    </div>
-                  </div>
-                  <button onClick={(e) => { e.stopPropagation(); onToggleFav(s.outfit.id); }} className={`h-8 w-8 flex items-center justify-center rounded-lg flex-shrink-0 transition-all ${isFav(s.outfit.id) ? 'text-rose-400' : 'text-white/[0.06] hover:text-rose-400'}`}>
-                    <Heart className={`h-4 w-4 ${isFav(s.outfit.id) ? 'fill-rose-400' : ''}`} />
-                  </button>
-                </div>
-              </Card>
+{viewMode === 'grid' ? (
+  <Card className="weekly-card-shine fav-grid-card bg-white/[0.02] border border-white/[0.04] rounded-2xl p-3 hover:bg-white/[0.04] hover:border-white/[0.08] transition-all duration-300 group cursor-pointer relative overflow-hidden"
+    onClick={() => onViewDetail(s)}>
+    <div className="flex gap-2 mb-2.5">
+      {s.outfit.paletaColores.map((c, i) => (
+        <div key={i} className="flex-1 h-8 rounded-lg" style={{ backgroundColor: c + '40', border: `1px solid ${c}30` }} />
+      ))}
+    </div>
+    <h3 className="text-[11px] font-semibold text-white/70 group-hover:text-amber-300 transition-colors leading-tight line-clamp-1">{s.outfit.nombre}</h3>
+    <div className="flex items-center justify-between mt-1.5">
+      <div className="flex gap-0.5">{s.outfit.estilo.slice(0, 1).map((e) => <Badge key={e} className="bg-violet-500/6 text-violet-400/60 text-[8px] px-1 py-0 border-violet-500/8">{LABELS.estilo[e as keyof typeof LABELS.estilo]}</Badge>)}</div>
+      <button onClick={(e) => { e.stopPropagation(); onToggleFav(s.outfit.id); }} className={`h-6 w-6 flex items-center justify-center rounded-md transition-all ${isFav(s.outfit.id) ? 'text-rose-400' : 'text-white/[0.06]'}`}>
+        <Heart className={`h-3 w-3 ${isFav(s.outfit.id) ? 'fill-rose-400' : ''}`} />
+      </button>
+    </div>
+  </Card>
+) : (
+  <Card className="weekly-card-shine bg-white/[0.02] border border-white/[0.04] rounded-2xl p-4 hover:bg-white/[0.035] transition-all duration-300 group backdrop-blur-sm cursor-pointer"
+    onClick={() => onViewDetail(s)}>
+    <div className="flex items-start gap-4">
+      <div className="flex -space-x-1 flex-shrink-0 pt-1">
+        {s.outfit.paletaColores.slice(0, 4).map((c, i) => (
+          <div key={i} className="w-5 h-5 rounded-full border border-[#0a0a0b]" style={{ backgroundColor: c }} />
+        ))}
+      </div>
+      <div className="flex-1 min-w-0">
+        <h3 className="text-sm font-semibold text-white/75 group-hover:text-amber-300 transition-colors">{s.outfit.nombre}</h3>
+        <p className="text-xs text-white/30 mt-1 line-clamp-1 leading-relaxed">{s.outfit.descripcion}</p>
+        <div className="flex flex-wrap gap-1 mt-2">
+          {s.outfit.estilo.map((e) => <Badge key={e} className="bg-violet-500/6 text-violet-400/70 text-[9px] px-1.5 py-0 border-violet-500/8 font-medium">{LABELS.estilo[e as keyof typeof LABELS.estilo]}</Badge>)}
+          {s.outfit.clima.map((c) => <Badge key={c} className="bg-orange-500/6 text-orange-400/70 text-[9px] px-1.5 py-0 border-orange-500/8 font-medium">{LABELS.clima[c as keyof typeof LABELS.clima]}</Badge>)}
+        </div>
+      </div>
+      <button onClick={(e) => { e.stopPropagation(); onToggleFav(s.outfit.id); }} className={`h-8 w-8 flex items-center justify-center rounded-lg flex-shrink-0 transition-all ${isFav(s.outfit.id) ? 'text-rose-400' : 'text-white/[0.06] hover:text-rose-400'}`}>
+        <Heart className={`h-4 w-4 ${isFav(s.outfit.id) ? 'fill-rose-400' : ''}`} />
+      </button>
+    </div>
+  </Card>
+)}
             </motion.div>
           ))}
         </motion.div>
@@ -2129,13 +2167,13 @@ function StatsSection({ worn, ratings, favs }: { worn?: Record<string, WornEntry
       {/* Summary cards */}
       <motion.div className="grid grid-cols-2 sm:grid-cols-5 gap-3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
         {[
-          { label: 'Total Outfits', value: allOutfits.length, icon: <ShirtIcon className="h-4 w-4" />, color: 'text-amber-400', bg: 'bg-amber-500/[0.06] border-amber-500/10' },
-          { label: 'Total Prendas', value: allGarments.length, icon: <Layers className="h-4 w-4" />, color: 'text-emerald-400', bg: 'bg-emerald-500/[0.06] border-emerald-500/10' },
-          { label: 'Estilos', value: Object.keys(stats.estiloCount).length, icon: <Palette className="h-4 w-4" />, color: 'text-violet-400', bg: 'bg-violet-500/[0.06] border-violet-500/10' },
-          { label: 'Colores Unicos', value: Object.keys(stats.colorCount).length, icon: <Gem className="h-4 w-4" />, color: 'text-sky-400', bg: 'bg-sky-500/[0.06] border-sky-500/10' },
-          { label: 'Armonia Promedio', value: Math.round(stats.avgHarmony), icon: <Star className="h-4 w-4" />, color: stats.avgHarmony >= 70 ? 'text-emerald-400' : 'text-amber-400', bg: stats.avgHarmony >= 70 ? 'bg-emerald-500/[0.06] border-emerald-500/10' : 'bg-amber-500/[0.06] border-amber-500/10' },
+          { label: 'Total Outfits', value: allOutfits.length, icon: <ShirtIcon className="h-4 w-4" />, color: 'text-amber-400', bg: 'bg-amber-500/[0.06] border-amber-500/10', glow: 'rgba(212,168,67,0.08)' },
+          { label: 'Total Prendas', value: allGarments.length, icon: <Layers className="h-4 w-4" />, color: 'text-emerald-400', bg: 'bg-emerald-500/[0.06] border-emerald-500/10', glow: 'rgba(16,185,129,0.08)' },
+          { label: 'Estilos', value: Object.keys(stats.estiloCount).length, icon: <Palette className="h-4 w-4" />, color: 'text-violet-400', bg: 'bg-violet-500/[0.06] border-violet-500/10', glow: 'rgba(139,92,246,0.08)' },
+          { label: 'Colores Unicos', value: Object.keys(stats.colorCount).length, icon: <Gem className="h-4 w-4" />, color: 'text-sky-400', bg: 'bg-sky-500/[0.06] border-sky-500/10', glow: 'rgba(244,63,94,0.08)' },
+          { label: 'Armonia Promedio', value: Math.round(stats.avgHarmony), icon: <Star className="h-4 w-4" />, color: stats.avgHarmony >= 70 ? 'text-emerald-400' : 'text-amber-400', bg: stats.avgHarmony >= 70 ? 'bg-emerald-500/[0.06] border-emerald-500/10' : 'bg-amber-500/[0.06] border-amber-500/10', glow: 'rgba(14,165,233,0.08)' },
         ].map(s => (
-          <Card key={s.label} className={`${s.bg} border rounded-xl p-4 backdrop-blur-sm`}>
+          <Card key={s.label} className={`stat-card ${s.bg} border rounded-xl p-4 backdrop-blur-sm`} style={{ '--glow-color': s.glow, '--glow-x': '50%', '--glow-y': '30%' } as React.CSSProperties}>
             <div className={`${s.color} mb-2`}>{s.icon}</div>
             <div className={`text-2xl font-bold ${s.color} tabular-nums`}>{s.value}</div>
             <div className="text-[10px] text-white/30 font-medium mt-0.5">{s.label}</div>
@@ -2419,6 +2457,30 @@ function CollectionsSection({ favs, isFav, onToggleFav, onViewDetail }: { favs: 
   const [collectionOutfits, setCollectionOutfits] = useState<OutfitBasic[]>([]);
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState<string | null>(null);
+  const [customCollections, setCustomCollections] = useState<Array<{ id: string; nombre: string; emoji: string; outfitIds: string[] }>>([]);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [newColName, setNewColName] = useState('');
+  const [newColEmoji, setNewColEmoji] = useState('📂');
+
+  useEffect(() => { try { const c = localStorage.getItem(CUSTOM_COLLECTIONS_KEY); if (c) setCustomCollections(JSON.parse(c)); } catch {} }, []);
+
+  const createCollection = () => {
+    if (!newColName.trim()) return;
+    const col = { id: 'custom-' + Date.now(), nombre: newColName.trim(), emoji: newColEmoji, outfitIds: favs.slice(0, 10) };
+    const next = [...customCollections, col];
+    setCustomCollections(next);
+    localStorage.setItem(CUSTOM_COLLECTIONS_KEY, JSON.stringify(next));
+    setShowCreateDialog(false);
+    setNewColName('');
+    toast.success(`Coleccion "${col.nombre}" creada`);
+  };
+
+  const deleteCustomCollection = (id: string) => {
+    const next = customCollections.filter(c => c.id !== id);
+    setCustomCollections(next);
+    localStorage.setItem(CUSTOM_COLLECTIONS_KEY, JSON.stringify(next));
+    toast.success('Coleccion eliminada');
+  };
 
   useEffect(() => {
     (async () => {
@@ -2460,10 +2522,16 @@ function CollectionsSection({ favs, isFav, onToggleFav, onViewDetail }: { favs: 
 
   return (
     <div className="space-y-5">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-        <h2 className="text-lg font-bold text-white/90 flex items-center gap-2"><FolderOpen className="h-5 w-5 text-sky-400" />Colecciones Curadas</h2>
-        <p className="text-xs text-white/25 mt-0.5">Outfits agrupados por tema, mood y estetica</p>
-      </motion.div>
+        <div className="flex items-center justify-between">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+          <h2 className="text-lg font-bold text-white/90 flex items-center gap-2"><FolderOpen className="h-5 w-5 text-sky-400" />Colecciones Curadas
+          <button onClick={() => setShowCreateDialog(true)} className='h-8 w-8 rounded-lg flex items-center justify-center bg-white/[0.04] border border-white/[0.06] text-white/25 hover:text-amber-400 hover:border-amber-500/15 hover:bg-amber-500/5 transition-all' title='Crear coleccion'>
+            <Plus className='h-4 w-4' />
+          </button>
+          </h2>
+          <p className="text-xs text-white/25 mt-0.5">Outfits agrupados por tema, mood y estetica</p>
+        </motion.div>
+        </div>
 
       <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3" variants={stagger} initial="initial" animate="animate">
         {collections.map(col => (
@@ -2490,6 +2558,26 @@ function CollectionsSection({ favs, isFav, onToggleFav, onViewDetail }: { favs: 
           </motion.div>
         ))}
       </motion.div>
+
+      {customCollections.length > 0 && (
+        <div className='mb-4'>
+          <p className='text-[10px] font-semibold text-white/20 uppercase tracking-[0.12em] mb-2'>Mis Colecciones</p>
+          <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3'>
+            {customCollections.map(col => (
+              <div key={col.id} className='custom-col-card rounded-2xl p-3 border border-white/[0.04] bg-white/[0.015] hover:bg-white/[0.03] transition-all group cursor-pointer relative' onClick={() => { /* Could open showing these outfits */ toast.info(`"${col.nombre}" con ${col.outfitIds.length} outfits`); }}>
+                <div className='flex items-center justify-between mb-2'>
+                  <span className='text-lg'>{col.emoji}</span>
+                  <button onClick={(e) => { e.stopPropagation(); deleteCustomCollection(col.id); }} className='delete-btn h-6 w-6 rounded-md flex items-center justify-center text-white/10 hover:text-rose-400 hover:bg-rose-500/10 opacity-0 group-hover:opacity-100 transition-all'>
+                    <Trash2 className='h-3 w-3' />
+                  </button>
+                </div>
+                <h4 className='text-xs font-semibold text-white/60 truncate'>{col.nombre}</h4>
+                <p className='text-[10px] text-white/20'>{col.outfitIds.length} outfits</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {selectedCollection && (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
@@ -2530,6 +2618,31 @@ function CollectionsSection({ favs, isFav, onToggleFav, onViewDetail }: { favs: 
           )}
         </motion.div>
       )}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className='bg-[#111113] border-white/[0.07] rounded-2xl max-w-sm w-[90vw] p-6'>
+          <DialogHeader>
+            <DialogTitle className='text-sm font-semibold text-white/90'>Nueva Coleccion</DialogTitle>
+            <DialogDescription className='text-xs text-white/30'>Crea tu propia coleccion de outfits favoritos</DialogDescription>
+          </DialogHeader>
+          <div className='space-y-4 mt-2'>
+            <div>
+              <label className='text-[10px] font-semibold text-white/30 uppercase tracking-[0.12em] mb-1.5 block'>Emoji</label>
+              <div className='flex gap-2 flex-wrap'>
+                {['📂', '🎯', '🔥', '💎', '⚡', '🌙', '🎨', '🏖️', '🎪', '🎭'].map(e => (
+                  <button key={e} onClick={() => setNewColEmoji(e)} className={`h-9 w-9 rounded-lg flex items-center justify-center text-lg border transition-all ${newColEmoji === e ? 'border-amber-500/30 bg-amber-500/10 scale-110' : 'border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04]'}`}>{e}</button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className='text-[10px] font-semibold text-white/30 uppercase tracking-[0.12em] mb-1.5 block'>Nombre</label>
+              <Input value={newColName} onChange={(e) => setNewColName(e.target.value)} placeholder='Ej: outfits de verano' className='h-9 bg-white/[0.03] border-white/[0.06] rounded-xl text-sm text-white/80 placeholder:text-white/20' />
+            </div>
+            <Button onClick={createCollection} disabled={!newColName.trim()} className='w-full h-10 bg-amber-600 hover:bg-amber-500 rounded-xl text-sm font-medium transition-all'>
+              <Plus className='h-4 w-4 mr-2' />Crear Coleccion
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
