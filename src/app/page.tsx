@@ -15,8 +15,9 @@ import {
   SlidersHorizontal, Briefcase, Shirt, Sun, Moon, CloudSun, Flame, Snowflake,
   Wine, Music, Crown, Search, X, BarChart3, ChevronDown, ChevronRight,
   TrendingUp, ShirtIcon, Clock, MapPin, Zap, Star, Gem,
-  Calendar, Copy, Check, Share2, ArrowLeftRight, Timer, Sparkle, Compass, Award,
-  MessageSquare, Send, CheckCircle2, UserCircle, Trash2, Thermometer, CloudRain, FolderOpen, Lock, Unlock, EyeOff
+  Calendar, CalendarDays, Copy, Check, Share2, ArrowLeftRight, Timer, Sparkle, Compass, Award,
+  MessageSquare, Send, CheckCircle2, UserCircle, Trash2, Thermometer, CloudRain, FolderOpen, Lock, Unlock, EyeOff,
+  Shuffle, Download, Upload
 } from 'lucide-react';
 import type { Ocasion, Momento, Clima, Estilo } from '@/data/types';
 import { LABELS } from '@/data/types';
@@ -244,22 +245,22 @@ const CATEGORIES = [
 ];
 
 function getScoreColor(score: number) {
-  if (score >= 80) return 'text-emerald-400';
-  if (score >= 60) return 'text-amber-400';
-  if (score >= 40) return 'text-orange-400';
-  return 'text-white/40';
+  if (score >= 80) return 'text-amber-300';
+  if (score >= 60) return 'text-amber-400/80';
+  if (score >= 40) return 'text-amber-400/50';
+  return 'text-white/30';
 }
 function getScoreBg(score: number) {
-  if (score >= 80) return 'bg-emerald-500/10 border-emerald-500/20';
-  if (score >= 60) return 'bg-amber-500/10 border-amber-500/20';
-  if (score >= 40) return 'bg-orange-500/10 border-orange-500/20';
-  return 'bg-white/[0.04] border-white/[0.08]';
+  if (score >= 80) return 'bg-amber-500/10 border-amber-500/15';
+  if (score >= 60) return 'bg-amber-500/8 border-amber-500/12';
+  if (score >= 40) return 'bg-amber-500/5 border-amber-500/8';
+  return 'bg-white/[0.03] border-white/[0.06]';
 }
 function getScoreBarColor(score: number) {
-  if (score >= 80) return 'bg-emerald-500';
-  if (score >= 60) return 'bg-amber-500';
-  if (score >= 40) return 'bg-orange-500';
-  return 'bg-white/20';
+  if (score >= 80) return 'score-excellent-bar';
+  if (score >= 60) return 'score-good-bar';
+  if (score >= 40) return 'score-moderate-bar';
+  return 'score-low-bar';
 }
 
 const fadeUp = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -8 } };
@@ -439,6 +440,12 @@ export default function StyleVaultPage() {
               </TabsTrigger>
               <TabsTrigger value="collections" className="rounded-xl data-[state=active]:bg-sky-500/15 data-[state=active]:text-sky-400 data-[state=active]:shadow-[0_0_15px_rgba(56,189,248,0.08)] gap-1.5 text-xs sm:text-sm transition-all duration-300">
                 <FolderOpen className="h-3.5 w-3.5" /><span className="hidden sm:inline">Colecciones</span><span className="sm:hidden">Col</span>
+              </TabsTrigger>
+              <TabsTrigger value="calendar" className="rounded-xl data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-400 data-[state=active]:shadow-[0_0_15px_rgba(16,185,129,0.08)] gap-1.5 text-xs sm:text-sm transition-all duration-300">
+                <CalendarDays className="h-3.5 w-3.5" /><span className="hidden sm:inline">Calendario</span><span className="sm:hidden">Cal</span>
+              </TabsTrigger>
+              <TabsTrigger value="mixmatch" className="rounded-xl data-[state=active]:bg-rose-500/15 data-[state=active]:text-rose-400 data-[state=active]:shadow-[0_0_15px_rgba(244,63,94,0.08)] gap-1.5 text-xs sm:text-sm transition-all duration-300">
+                <Shuffle className="h-3.5 w-3.5" /><span className="hidden sm:inline">Mix & Match</span><span className="sm:hidden">Mix</span>
               </TabsTrigger>
               <TabsTrigger value="favorites" className="rounded-xl data-[state=active]:bg-rose-500/15 data-[state=active]:text-rose-400 gap-1.5 text-xs sm:text-sm transition-all duration-300">
                 <Heart className="h-3.5 w-3.5" /><span className="hidden sm:inline">Favoritos</span><span className="sm:hidden">{'\u2764'}</span>
@@ -693,7 +700,8 @@ export default function StyleVaultPage() {
                                   onShare={() => copyOutfitToClipboard(s.outfit, s.garments)}
                                   compareMode={compareIds.length > 0}
                                   isComparing={compareIds.includes(s.outfit.id)}
-                                  onToggleCompare={() => toggleCompare(s.outfit.id)} />
+                                  onToggleCompare={() => toggleCompare(s.outfit.id)}
+                                  rating={ratings[s.outfit.id]} onRate={rate} />
                               </motion.div>
                             ))}
                           </AnimatePresence>
@@ -728,6 +736,16 @@ export default function StyleVaultPage() {
               <CollectionsSection favs={favs} isFav={isFav} onToggleFav={toggleFav} onViewDetail={(s: Suggestion) => setDetailOutfit(s)} />
             </TabsContent>
 
+            {/* === CALENDAR TAB === */}
+            <TabsContent value="calendar" className="mt-6">
+              <WornCalendarSection worn={worn} onViewDetail={(s: Suggestion) => setDetailOutfit(s)} />
+            </TabsContent>
+
+            {/* === MIX & MATCH TAB === */}
+            <TabsContent value="mixmatch" className="mt-6">
+              <MixMatchSection onViewDetail={(s: Suggestion) => setDetailOutfit(s)} />
+            </TabsContent>
+
             {/* === FAVORITES TAB === */}
             <TabsContent value="favorites" className="mt-6">
               <FavoritesSection favs={favs} isFav={isFav} onToggleFav={toggleFav} onViewDetail={(s: Suggestion) => setDetailOutfit(s)} />
@@ -752,7 +770,7 @@ export default function StyleVaultPage() {
               <div className="w-5 h-5 rounded-md bg-gradient-to-br from-amber-500/25 to-amber-900/20 flex items-center justify-center">
                 <Warehouse className="h-2.5 w-2.5 text-amber-400/50" />
               </div>
-              <p className="text-[10px] text-white/12 font-medium">StyleVault v6.0 \u{2014} Enrique Cascante</p>
+              <p className="text-[10px] text-white/12 font-medium">StyleVault v7.0 \u{2014} Enrique Cascante</p>
             </div>
             <div className="flex items-center gap-3 text-[10px] text-white/10 font-medium">
               <span>130 outfits</span>
@@ -761,7 +779,7 @@ export default function StyleVaultPage() {
               <div className="w-px h-2.5 bg-white/[0.04]" />
               <span>4 esteticas</span>
               <div className="w-px h-2.5 bg-white/[0.04]" />
-              <span className="text-sky-400/30">Colecciones + Clima</span>
+              <span className="text-sky-400/30">Calendario + Mix & Match</span>
             </div>
           </div>
         </footer>
@@ -792,20 +810,20 @@ export default function StyleVaultPage() {
 /* ============================================================
    OUTFIT CARD ROW (Suggestions Tab)
    ============================================================ */
-function OutfitCardRow({ suggestion, rank, selected, onSelect, isFav, onToggleFav, onViewDetail, onShare, compareMode, isComparing, onToggleCompare }: {
-  suggestion: Suggestion; rank: number; selected: boolean; onSelect: () => void; isFav?: boolean; onToggleFav?: () => void; onViewDetail?: () => void; onShare?: () => void; compareMode?: boolean; isComparing?: boolean; onToggleCompare?: () => void;
+function OutfitCardRow({ suggestion, rank, selected, onSelect, isFav, onToggleFav, onViewDetail, onShare, compareMode, isComparing, onToggleCompare, rating, onRate }: {
+  suggestion: Suggestion; rank: number; selected: boolean; onSelect: () => void; isFav?: boolean; onToggleFav?: () => void; onViewDetail?: () => void; onShare?: () => void; compareMode?: boolean; isComparing?: boolean; onToggleCompare?: () => void; rating?: number; onRate?: (id: string, stars: number) => void;
 }) {
   const { outfit, garments, matchDetails, score } = suggestion;
   const matchCount = [matchDetails.ocasion, matchDetails.momento, matchDetails.clima, matchDetails.estilo].filter(Boolean).length;
   const harmony = getHarmonyScore(outfit.paletaColores);
   return (
-    <Card className={`bg-white/[0.02] border rounded-2xl overflow-hidden transition-all duration-300 group backdrop-blur-sm weekly-card-shine ${
+    <Card className={`outfit-card-refined border rounded-2xl overflow-hidden transition-all duration-300 group backdrop-blur-sm weekly-card-shine {
       isComparing ? 'border-amber-500/30 shadow-[0_0_25px_-5px_rgba(245,158,11,0.1)] animate-glow-pulse' :
       selected ? 'border-amber-500/20 shadow-[0_0_30px_-5px_rgba(245,158,11,0.06)]' : 'border-white/[0.04] hover:border-white/[0.08] hover:shadow-lg hover:shadow-black/20'
     }`}>
       <CardContent className="p-0">
         {/* Top bar: rank + score + actions */}
-        <div className="flex items-center justify-between px-5 pt-4 pb-2">
+        <div className="flex items-center justify-between px-6 pt-5 pb-3">
           <div className="flex items-center gap-2.5">
             <span className={`text-[11px] font-black tabular-nums w-8 h-8 rounded-lg flex items-center justify-center border ${
               rank === 1 ? 'bg-gradient-to-br from-amber-500/25 to-amber-700/15 border-amber-500/30 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.12)]' :
@@ -818,7 +836,7 @@ function OutfitCardRow({ suggestion, rank, selected, onSelect, isFav, onToggleFa
             <span className="text-[10px] text-white/18">{matchCount}/4</span>
             {/* Harmony mini indicator */}
             <div className="hidden sm:flex items-center gap-1 ml-1">
-              <div className={`w-1.5 h-1.5 rounded-full ${harmony.score >= 75 ? 'bg-emerald-400' : harmony.score >= 55 ? 'bg-amber-400' : 'bg-orange-400'}`} />
+              <div className={`w-1.5 h-1.5 rounded-full ${harmony.score >= 75 ? 'bg-amber-400' : harmony.score >= 55 ? 'bg-amber-400/60' : 'bg-amber-400/30'}`} />
               <span className="text-[9px] text-white/15 font-mono">{harmony.score}</span>
             </div>
           </div>
@@ -844,9 +862,18 @@ function OutfitCardRow({ suggestion, rank, selected, onSelect, isFav, onToggleFa
           </div>
         </div>
         {/* Main content */}
-        <button onClick={onSelect} className="w-full text-left px-5 pb-4">
-          <h3 className="text-[15px] font-semibold text-white/80 group-hover:text-amber-200 transition-colors leading-tight">{outfit.nombre}</h3>
-          <p className="text-xs text-white/30 mt-1.5 line-clamp-2 leading-relaxed">{outfit.descripcion}</p>
+        <button onClick={onSelect} className="w-full text-left px-6 pb-5">
+          <h3 className="text-[15px] font-semibold text-white/90 group-hover:text-amber-200 transition-colors leading-tight">{outfit.nombre}</h3>
+          {rating !== undefined && (
+            <div className="flex items-center gap-0.5 mt-1.5">
+              {[1, 2, 3, 4, 5].map(n => (
+                <button key={n} className="star-btn" onClick={(e) => { e.stopPropagation(); if (onRate) onRate(s.outfit.id, n); }}>
+                  <Star className={`h-3 w-3 ${n <= (rating || 0) ? 'star-filled' : 'star-empty'}`} />
+                </button>
+              ))}
+            </div>
+          )}
+          <p className="text-xs text-white/45 mt-1.5 line-clamp-2 leading-relaxed">{outfit.descripcion}</p>
           <div className="flex items-center gap-2 mt-4">
             <div className="flex -space-x-1">
               {outfit.paletaColores.map((color, i) => (
@@ -855,17 +882,17 @@ function OutfitCardRow({ suggestion, rank, selected, onSelect, isFav, onToggleFa
             </div>
             <div className="flex-1" />
             <div className="flex flex-wrap gap-1">
-              {matchDetails.ocasion && <Badge variant="secondary" className="bg-emerald-500/8 text-emerald-400/80 border-emerald-500/12 text-[10px] px-2 py-0 h-5 font-medium">{LABELS.ocasion[outfit.ocasion[0] as keyof typeof LABELS.ocasion]}</Badge>}
-              {matchDetails.momento && <Badge variant="secondary" className="bg-sky-500/8 text-sky-400/80 border-sky-500/12 text-[10px] px-2 py-0 h-5 font-medium">{LABELS.momento[outfit.momento[0] as keyof typeof LABELS.momento]}</Badge>}
-              {matchDetails.clima && <Badge variant="secondary" className="bg-orange-500/8 text-orange-400/80 border-orange-500/12 text-[10px] px-2 py-0 h-5 font-medium">{LABELS.clima[outfit.clima[0] as keyof typeof LABELS.clima]}</Badge>}
-              {matchDetails.estilo && <Badge variant="secondary" className="bg-violet-500/8 text-violet-400/80 border-violet-500/12 text-[10px] px-2 py-0 h-5 font-medium">{LABELS.estilo[outfit.estilo[0] as keyof typeof LABELS.estilo]}</Badge>}
+              {matchDetails.ocasion && <Badge variant="secondary" className="tag-ocasion border text-[10px] px-2.5 py-0 h-5 font-medium">{LABELS.ocasion[outfit.ocasion[0] as keyof typeof LABELS.ocasion]}</Badge>}
+              {matchDetails.momento && <Badge variant="secondary" className="tag-momento border text-[10px] px-2.5 py-0 h-5 font-medium">{LABELS.momento[outfit.momento[0] as keyof typeof LABELS.momento]}</Badge>}
+              {matchDetails.clima && <Badge variant="secondary" className="tag-clima border text-[10px] px-2.5 py-0 h-5 font-medium">{LABELS.clima[outfit.clima[0] as keyof typeof LABELS.clima]}</Badge>}
+              {matchDetails.estilo && <Badge variant="secondary" className="tag-estilo border text-[10px] px-2.5 py-0 h-5 font-medium">{LABELS.estilo[outfit.estilo[0] as keyof typeof LABELS.estilo]}</Badge>}
             </div>
           </div>
         </button>
         {/* Expanded garment list */}
         <AnimatePresence>
           {selected && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="border-t border-white/[0.04] bg-white/[0.01] px-5 py-4">
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="border-t border-white/[0.04] bg-white/[0.01] px-6 py-4">
               <h4 className="text-[10px] font-semibold text-white/25 uppercase tracking-[0.15em] mb-3">Prendas del Outfit</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                 {garments.map((g) => (
@@ -1201,7 +1228,7 @@ function WeeklyPlannerSection({ favs, isFav, onToggleFav, onViewDetail }: { favs
                       <p className="text-[11px] text-white/25 mt-0.5 line-clamp-1">{day.outfit.descripcion}</p>
                       <div className="flex items-center gap-2 mt-2">
                         <div className="flex -space-x-1">{day.outfit.paletaColores.slice(0, 5).map((c, j) => <div key={j} className="w-4 h-4 rounded-full border border-[#0a0a0b]" style={{ backgroundColor: c }} />)}</div>
-                        <span className={`text-[10px] font-bold tabular-nums ${day.score >= 80 ? 'text-emerald-400/60' : 'text-white/15'}`}>{Math.round(day.score)}%</span>
+                        <span className={`text-[10px] font-bold tabular-nums ${day.score >= 80 ? 'text-amber-400/70' : 'text-white/15'}`}>{Math.round(day.score)}%</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
@@ -1564,6 +1591,207 @@ function FavoritesSection({ favs, isFav, onToggleFav, onViewDetail }: { favs: st
 }
 
 /* ============================================================
+   WORN CALENDAR SECTION
+   ============================================================ */
+function WornCalendarSection({ worn, onViewDetail }: { worn: Record<string, WornEntry>; onViewDetail: (s: Suggestion) => void }) {
+  const dateMap = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    Object.entries(worn).forEach(([id, entry]) => {
+      entry.dates.forEach(d => {
+        if (!map[d]) map[d] = [];
+        if (!map[d].includes(id)) map[d].push(id);
+      });
+    });
+    return map;
+  }, [worn]);
+
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [dayOutfits, setDayOutfits] = useState<Suggestion[]>([]);
+  const [dayLoading, setDayLoading] = useState(false);
+
+  const today = new Date().toISOString().split('T')[0];
+  const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const dayNames = ['Lu','Ma','Mi','Ju','Vi','Sa','Do'];
+
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const firstDayOfWeek = (new Date(currentYear, currentMonth, 1).getDay() + 6) % 7;
+  const prevMonthDays = new Date(currentYear, currentMonth, 0).getDate();
+
+  const prevMonth = () => { if (currentMonth === 0) { setCurrentMonth(11); setCurrentYear(y => y - 1); } else setCurrentMonth(m => m - 1); };
+  const nextMonth = () => { if (currentMonth === 11) { setCurrentMonth(0); setCurrentYear(y => y + 1); } else setCurrentMonth(m => m + 1); };
+
+  const handleDayClick = async (dateStr: string) => {
+    setSelectedDate(dateStr);
+    const ids = dateMap[dateStr];
+    if (!ids || ids.length === 0) { setDayOutfits([]); return; }
+    setDayLoading(true);
+    try {
+      const results = await Promise.all(ids.map(id => fetch(`/api/outfits/${id}`).then(r => r.json())));
+      setDayOutfits(results.map(r => ({ outfit: r.outfit, garments: r.garments, score: 0, matchDetails: { ocasion: true, momento: true, clima: true, estilo: true } })));
+    } catch { setDayOutfits([]); }
+    finally { setDayLoading(false); }
+  };
+
+  const calendarDays: Array<{ day: number; dateStr: string; isCurrentMonth: boolean; isToday: boolean; hasOutfit: boolean }> = [];
+  for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+    const day = prevMonthDays - i;
+    const m = currentMonth === 0 ? 12 : currentMonth;
+    const y = currentMonth === 0 ? currentYear - 1 : currentYear;
+    const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    calendarDays.push({ day, dateStr, isCurrentMonth: false, isToday: dateStr === today, hasOutfit: !!dateMap[dateStr] });
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    calendarDays.push({ day: d, dateStr, isCurrentMonth: true, isToday: dateStr === today, hasOutfit: !!dateMap[dateStr] });
+  }
+  const remaining = 42 - calendarDays.length;
+  for (let d = 1; d <= remaining; d++) {
+    const m = currentMonth + 2 > 12 ? 1 : currentMonth + 2;
+    const y = currentMonth + 2 > 12 ? currentYear + 1 : currentYear;
+    const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    calendarDays.push({ day: d, dateStr, isCurrentMonth: false, isToday: dateStr === today, hasOutfit: !!dateMap[dateStr] });
+  }
+
+  return (
+    <div className="space-y-5">
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+        <h2 className="text-lg font-bold text-white/90 flex items-center gap-2"><CalendarDays className="h-5 w-5 text-amber-400" />Calendario de Outfits</h2>
+        <p className="text-xs text-white/30 mt-0.5">Historial de looks vestidos por fecha</p>
+      </motion.div>
+      <Card className="bg-white/[0.02] border-white/[0.05] rounded-2xl overflow-hidden">
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between mb-4">
+            <button onClick={prevMonth} className="h-8 w-8 rounded-lg flex items-center justify-center text-white/30 hover:text-white/60 hover:bg-white/[0.05] transition-all"><ChevronRight className="h-4 w-4 rotate-180" /></button>
+            <h3 className="text-sm font-bold text-white/80">{monthNames[currentMonth]} {currentYear}</h3>
+            <button onClick={nextMonth} className="h-8 w-8 rounded-lg flex items-center justify-center text-white/30 hover:text-white/60 hover:bg-white/[0.05] transition-all"><ChevronRight className="h-4 w-4" /></button>
+          </div>
+          <div className="calendar-grid mb-1">
+            {dayNames.map(d => <div key={d} className="text-center text-[10px] font-semibold text-white/25 py-1">{d}</div>)}
+          </div>
+          <div className="calendar-grid">
+            {calendarDays.map((cd, i) => (
+              <button key={i} onClick={() => handleDayClick(cd.dateStr)}
+                className={`calendar-day text-white/50 ${cd.isCurrentMonth ? '' : 'other-month'} ${cd.isToday ? 'today' : ''} ${cd.hasOutfit ? 'has-outfit' : ''} ${selectedDate === cd.dateStr ? 'selected' : ''}`}>
+                {cd.day}
+              </button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+      <AnimatePresence>
+        {selectedDate && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-3">
+            <h3 className="text-sm font-semibold text-white/70">Outfits del {selectedDate}</h3>
+            {dayLoading ? <Skeleton className="h-20 rounded-xl" /> : dayOutfits.length === 0 ? <p className="text-xs text-white/25">Sin outfits registrados este dia</p> : dayOutfits.map(s => (
+              <div key={s.outfit.id} onClick={() => onViewDetail(s)} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] cursor-pointer transition-all">
+                <div className="flex -space-x-1">{s.outfit.paletaColores.slice(0, 4).map((c, i) => <div key={i} className="w-5 h-5 rounded-full border border-[#08080a]" style={{ backgroundColor: c }} />)}</div>
+                <div className="flex-1 min-w-0"><p className="text-xs font-medium text-white/65 truncate">{s.outfit.nombre}</p><p className="text-[10px] text-white/25 truncate">{s.outfit.descripcion}</p></div>
+                <ChevronRight className="h-4 w-4 text-white/15" />
+              </div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/* ============================================================
+   MIX & MATCH SECTION
+   ============================================================ */
+function MixMatchSection({ onViewDetail }: { onViewDetail: (s: Suggestion) => void }) {
+  const [garments, setGarments] = useState<Array<{ id: string; nombre: string; emoji: string; color: string; colorHex: string; categoria: string }>>([]);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [results, setResults] = useState<Suggestion[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [filterCat, setFilterCat] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/wardrobe').then(r => r.json()).then(d => setGarments(d.prendas || [])).catch(() => {});
+  }, []);
+
+  const toggleGarment = (id: string) => {
+    setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : prev.length < 3 ? [...prev, id] : prev);
+    setResults([]);
+  };
+
+  const search = async () => {
+    if (selected.length === 0) return;
+    setSearching(true);
+    try {
+      const res = await fetch('/api/outfits?limit=130');
+      const data = await res.json();
+      const allOutfits: OutfitBasic[] = data.outfits || [];
+      const matching = allOutfits.filter(o => {
+        const ids = [o.prendaSuperior, o.pantalon, o.calzado, o.corbata, o.abrigo, ...(o.accesorios || [])].filter(Boolean) as string[];
+        return selected.every(sid => ids.includes(sid));
+      });
+      const detailed = await Promise.all(matching.slice(0, 12).map(async o => {
+        const r = await fetch(`/api/outfits/${o.id}`);
+        const d = await r.json();
+        return { outfit: d.outfit, garments: d.garments, score: 0, matchDetails: { ocasion: true, momento: true, clima: true, estilo: true } };
+      }));
+      setResults(detailed);
+    } catch { setResults([]); }
+    finally { setSearching(false); }
+  };
+
+  const filtered = filterCat ? garments.filter(g => g.categoria === filterCat) : garments;
+
+  return (
+    <div className="space-y-5">
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+        <h2 className="text-lg font-bold text-white/90 flex items-center gap-2"><Shuffle className="h-5 w-5 text-amber-400" />Mix & Match</h2>
+        <p className="text-xs text-white/30 mt-0.5">Selecciona prendas y encuentra outfits compatibles</p>
+      </motion.div>
+      {selected.length > 0 && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-500/5 border border-amber-500/15">
+          <span className="text-xs text-amber-400/80 font-medium">{selected.length}/3 seleccionadas</span>
+          <div className="flex-1" />
+          <Button size="sm" onClick={search} disabled={searching} className="h-8 bg-amber-600/80 hover:bg-amber-500 rounded-lg text-xs gap-1.5 border border-amber-500/20">
+            {searching ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Search className="h-3 w-3" />}Buscar Outfits
+          </Button>
+          <button onClick={() => { setSelected([]); setResults([]); }} className="text-white/25 hover:text-white/50"><X className="h-4 w-4" /></button>
+        </div>
+      )}
+      <div className="flex flex-wrap gap-1.5">
+        {CATEGORIES.map(cat => (
+          <button key={cat.id || 'all'} onClick={() => setFilterCat(cat.id)} className={`px-3 py-1.5 rounded-lg border text-[10px] font-medium transition-all ${filterCat === cat.id ? 'bg-white/[0.06] border-white/[0.12] text-white' : 'border-white/[0.03] text-white/25 hover:text-white/45'}`}>
+            {cat.emoji} {cat.label}
+          </button>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {filtered.map(g => (
+          <button key={g.id} onClick={() => toggleGarment(g.id)} className={`garment-chip ${selected.includes(g.id) ? 'selected' : ''}`}>
+            <span className="chip-color" style={{ backgroundColor: g.colorHex }} />
+            <span className="text-xs">{g.emoji} {g.nombre}</span>
+          </button>
+        ))}
+      </div>
+      {results.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-white/70">{results.length} outfits encontrados</h3>
+          {results.map(s => (
+            <div key={s.outfit.id} onClick={() => onViewDetail(s)} className="flex items-center gap-4 px-5 py-4 rounded-2xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.035] cursor-pointer transition-all">
+              <div className="flex -space-x-1.5">{s.outfit.paletaColores.map((c, i) => <div key={i} className="w-7 h-7 rounded-full border-2 border-[#08080a] shadow" style={{ backgroundColor: c }} />)}</div>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-sm font-semibold text-white/80 truncate">{s.outfit.nombre}</h4>
+                <p className="text-[11px] text-white/35 mt-0.5 truncate">{s.outfit.descripcion}</p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-white/15 flex-shrink-0" />
+            </div>
+          ))}
+        </div>
+      )}
+      {searching && <Skeleton className="h-32 rounded-xl" />}
+    </div>
+  );
+}
+
+/* ============================================================
    AI ADVISOR SECTION
    ============================================================ */
 function AdvisorSection() {
@@ -1791,7 +2019,7 @@ function StatsSection({ worn, ratings, favs }: { worn?: Record<string, WornEntry
           { label: 'Total Prendas', value: allGarments.length, icon: <Layers className="h-4 w-4" />, color: 'text-emerald-400', bg: 'bg-emerald-500/[0.06] border-emerald-500/10' },
           { label: 'Estilos', value: Object.keys(stats.estiloCount).length, icon: <Palette className="h-4 w-4" />, color: 'text-violet-400', bg: 'bg-violet-500/[0.06] border-violet-500/10' },
           { label: 'Colores Unicos', value: Object.keys(stats.colorCount).length, icon: <Gem className="h-4 w-4" />, color: 'text-sky-400', bg: 'bg-sky-500/[0.06] border-sky-500/10' },
-          { label: 'Armonia Prom.', value: Math.round(stats.avgHarmony), icon: <Star className="h-4 w-4" />, color: stats.avgHarmony >= 70 ? 'text-emerald-400' : 'text-amber-400', bg: stats.avgHarmony >= 70 ? 'bg-emerald-500/[0.06] border-emerald-500/10' : 'bg-amber-500/[0.06] border-amber-500/10' },
+          { label: 'Armonia Promedio', value: Math.round(stats.avgHarmony), icon: <Star className="h-4 w-4" />, color: stats.avgHarmony >= 70 ? 'text-emerald-400' : 'text-amber-400', bg: stats.avgHarmony >= 70 ? 'bg-emerald-500/[0.06] border-emerald-500/10' : 'bg-amber-500/[0.06] border-amber-500/10' },
         ].map(s => (
           <Card key={s.label} className={`${s.bg} border rounded-xl p-4 backdrop-blur-sm`}>
             <div className={`${s.color} mb-2`}>{s.icon}</div>
@@ -1882,6 +2110,41 @@ function StatsSection({ worn, ratings, favs }: { worn?: Record<string, WornEntry
           </div>
         </Card>
       </motion.div>
+
+      {/* Export/Import */}
+      <div className="mt-8 pt-6 border-t border-white/[0.04]">
+        <h3 className="text-sm font-semibold text-white/70 flex items-center gap-2 mb-4"><Lock className="h-4 w-4 text-amber-400" />Datos y Copia de Seguridad</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="data-card surface-1 rounded-2xl p-5 space-y-3 cursor-pointer hover-lift" onClick={() => {
+            const data = { favorites: JSON.parse(localStorage.getItem(FAVS_KEY) || '[]'), history: JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'), worn: JSON.parse(localStorage.getItem(WORN_KEY) || '{}'), ratings: JSON.parse(localStorage.getItem(RATINGS_KEY) || '{}'), exportDate: new Date().toISOString() };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = `stylevault-backup-${new Date().toISOString().split('T')[0]}.json`; a.click(); URL.revokeObjectURL(url);
+            toast.success('Datos exportados correctamente');
+          }}>
+            <div className="flex items-center gap-3"><div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center"><Download className="h-5 w-5 text-amber-400" /></div><div><p className="text-sm font-medium text-white/75">Exportar Datos</p><p className="text-[10px] text-white/25 mt-0.5">Descargar copia de seguridad JSON</p></div></div>
+          </div>
+          <div className="data-card surface-1 rounded-2xl p-5 space-y-3 relative">
+            <input type="file" accept=".json" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = (ev) => {
+                try {
+                  const data = JSON.parse(ev.target?.result as string);
+                  if (data.favorites) localStorage.setItem(FAVS_KEY, JSON.stringify(data.favorites));
+                  if (data.history) localStorage.setItem(HISTORY_KEY, JSON.stringify(data.history));
+                  if (data.worn) localStorage.setItem(WORN_KEY, JSON.stringify(data.worn));
+                  if (data.ratings) localStorage.setItem(RATINGS_KEY, JSON.stringify(data.ratings));
+                  toast.success('Datos importados. Recarga la pagina para ver los cambios.');
+                } catch { toast.error('Archivo invalido'); }
+              };
+              reader.readAsText(file);
+            }} />
+            <div className="flex items-center gap-3"><div className="h-10 w-10 rounded-xl bg-sky-500/10 flex items-center justify-center"><Upload className="h-5 w-5 text-sky-400" /></div><div><p className="text-sm font-medium text-white/75">Importar Datos</p><p className="text-[10px] text-white/25 mt-0.5">Restaurar desde archivo JSON</p></div></div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1950,8 +2213,8 @@ function StyleDNARadar({ favs, worn, ratings, allOutfits }: { favs: string[]; wo
     <Card className="bg-white/[0.015] border-white/[0.04] rounded-2xl p-5 backdrop-blur-sm">
       <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-4 flex items-center gap-2"><Gem className="h-3.5 w-3.5 text-violet-400" />Style DNA</h3>
       <div className="flex flex-col sm:flex-row items-center gap-6">
-        <div className="style-dna-chart relative flex-shrink-0">
-          <svg viewBox="0 0 100 100" className="w-40 h-40">
+        <div className="style-dna-chart relative flex-shrink-0 py-3">
+          <svg viewBox="0 0 100 100" className="w-40 h-40" overflow="visible">
             {/* Grid lines */}
             {[25, 50, 75, 100].map(level => {
               const pts = estilos.map((_, i) => getPoint(i, level));

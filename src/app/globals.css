@@ -533,6 +533,135 @@ input[type="text"]:focus, input[type="search"]:focus {
 }
 
 /* ============================================================
+   CARD SURFACE ELEVATION SYSTEM
+   ============================================================ */
+
+.surface-0 { background: rgba(255, 255, 255, 0.015); border-color: rgba(255, 255, 255, 0.04); }
+.surface-1 { background: rgba(255, 255, 255, 0.025); border-color: rgba(255, 255, 255, 0.06); }
+.surface-2 { background: rgba(255, 255, 255, 0.035); border-color: rgba(255, 255, 255, 0.08); }
+.surface-3 { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.10); }
+
+/* ============================================================
+   SCORE INDICATOR REFINED (amber-gold, not neon green)
+   ============================================================ */
+
+.score-excellent { color: #fbbf24; background: rgba(251, 191, 36, 0.08); border-color: rgba(251, 191, 36, 0.15); }
+.score-excellent-bar { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.score-good { color: #d4a843; background: rgba(212, 168, 67, 0.08); border-color: rgba(212, 168, 67, 0.15); }
+.score-good-bar { background: linear-gradient(90deg, #d97706, #d4a843); }
+.score-moderate { color: #c2956a; background: rgba(194, 149, 106, 0.06); border-color: rgba(194, 149, 106, 0.12); }
+.score-moderate-bar { background: linear-gradient(90deg, #a16207, #c2956a); }
+.score-low { color: rgba(255, 255, 255, 0.25); background: rgba(255, 255, 255, 0.02); border-color: rgba(255, 255, 255, 0.05); }
+.score-low-bar { background: rgba(255, 255, 255, 0.12); }
+
+/* ============================================================
+   TAG SYSTEM REFINED (muted, cohesive palette)
+   ============================================================ */
+
+.tag-ocasion { color: rgba(110, 231, 179, 0.7); background: rgba(110, 231, 179, 0.06); border-color: rgba(110, 231, 179, 0.10); }
+.tag-momento { color: rgba(147, 197, 253, 0.7); background: rgba(147, 197, 253, 0.06); border-color: rgba(147, 197, 253, 0.10); }
+.tag-clima { color: rgba(253, 186, 116, 0.7); background: rgba(253, 186, 116, 0.06); border-color: rgba(253, 186, 116, 0.10); }
+.tag-estilo { color: rgba(196, 181, 253, 0.7); background: rgba(196, 181, 253, 0.06); border-color: rgba(196, 181, 253, 0.10); }
+
+/* ============================================================
+   CALENDAR GRID SYSTEM
+   ============================================================ */
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  min-height: 52px;
+  cursor: default;
+  position: relative;
+  border: 1px solid transparent;
+}
+
+.calendar-day:hover {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.calendar-day.today {
+  background: rgba(212, 168, 67, 0.08);
+  border-color: rgba(212, 168, 67, 0.2);
+  color: #fbbf24;
+  font-weight: 700;
+}
+
+.calendar-day.has-outfit::after {
+  content: '';
+  position: absolute;
+  bottom: 6px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #d4a843;
+  box-shadow: 0 0 6px rgba(212, 168, 67, 0.4);
+}
+
+.calendar-day.other-month {
+  color: rgba(255, 255, 255, 0.1);
+}
+
+.calendar-day.selected {
+  background: rgba(212, 168, 67, 0.12);
+  border-color: rgba(212, 168, 67, 0.3);
+}
+
+/* ============================================================
+   MIX & MATCH GARMENT CHIPS
+   ============================================================ */
+
+.garment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.02);
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.garment-chip:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.garment-chip.selected {
+  background: rgba(212, 168, 67, 0.1);
+  border-color: rgba(212, 168, 67, 0.25);
+  color: #fbbf24;
+  box-shadow: 0 0 12px rgba(212, 168, 67, 0.08);
+}
+
+.garment-chip .chip-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+/* ============================================================
    SMOOTH PAGE TRANSITIONS
    ============================================================ */
 
@@ -569,7 +698,73 @@ input[type="text"]:focus, input[type="search"]:focus {
 
 .gradient-mesh {
   background:
-    radial-gradient(ellipse at 20% 50%, rgba(212, 168, 67, 0.03) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 20%, rgba(139, 92, 246, 0.02) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 80%, rgba(16, 185, 129, 0.015) 0%, transparent 50%);
+    radial-gradient(ellipse at 20% 50%, rgba(212, 168, 67, 0.025) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(139, 92, 246, 0.015) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 80%, rgba(16, 185, 129, 0.01) 0%, transparent 50%);
 }
+
+/* ============================================================
+   SMOOTH SLIDE-IN ANIMATION
+   ============================================================ */
+
+@keyframes slide-in-from-right {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-from-right 0.35s ease-out both;
+}
+
+/* ============================================================
+   RATING STAR STYLES
+   ============================================================ */
+
+.star-btn {
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+.star-btn:hover { transform: scale(1.2); }
+.star-btn:active { transform: scale(0.95); }
+.star-filled { color: #fbbf24; filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.4)); }
+.star-empty { color: rgba(255, 255, 255, 0.1); }
+.star-hover-preview { color: rgba(251, 191, 36, 0.5); }
+
+/* ============================================================
+   EXPORT/IMPORT SECTION
+   ============================================================ */
+
+.data-card {
+  position: relative;
+  overflow: hidden;
+}
+.data-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(212, 168, 67, 0.3), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.data-card:hover::before {
+  opacity: 1;
+}
+
+/* ============================================================
+   ENHANCED CARD HOVER STATES
+   ============================================================ */
+
+.outfit-card-refined {
+  background: rgba(255, 255, 255, 0.022);
+  border-color: rgba(255, 255, 255, 0.045);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.outfit-card-refined:hover {
+  background: rgba(255, 255, 255, 0.035);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.3);
+}
+

@@ -447,3 +447,33 @@ StyleVault is now a comprehensive, production-quality outfit suggestion system a
 5. **Seasonal transitions**: Auto-suggest wardrobe changes between seasons
 6. **Export/Import**: Backup and restore favorites, history, ratings as JSON
 7. **Advanced AI advisor**: Image-aware advice (upload a photo and get outfit suggestions)
+
+---
+Task ID: 8
+Agent: Main Agent
+Task: v7.0 styling overhaul + Calendar + Mix&Match + Export/Import
+
+Work Log:
+- FIX 1: Replaced score color functions with warm amber tones (text-amber-300/400/50, CSS class-based bars)
+- FIX 2: Improved card description contrast (text-white/30→45), title contrast (text-white/80→90)
+- FIX 3: Changed OutfitCardRow to use outfit-card-refined CSS class, increased padding (px-5→px-6, pt-4→pt-5, pb-2→pb-3, pb-4→pb-5)
+- FIX 4: Replaced tag Badge classes with CSS tag-ocasion/tag-momento/tag-clima/tag-estilo, added border class, increased px-2→px-2.5
+- FIX 5: Changed harmony mini indicator to all-amber tones (bg-amber-400, bg-amber-400/60, bg-amber-400/30)
+- FIX 6: Changed weekly score color from text-emerald-400/60 to text-amber-400/70
+- FIX 7: Added overflow="visible" to radar SVG and py-3 padding to container
+- FIX 8: Changed "Armonia Prom." to "Armonia Promedio"
+- NEW 9: Added WornCalendarSection component with full calendar grid, month navigation, day selection, outfit loading per date
+- NEW 10: Added MixMatchSection component with garment chips, category filtering, 3-garment selection, outfit search
+- NEW 11: Added Export/Import section in StatsSection with JSON backup/restore using Download/Upload icons
+- FIX 12: Added star rating (onRate/rating props) to OutfitCardRow, updated call site to pass ratings[s.outfit.id] and rate
+- FIX 13: Updated footer from v6.0 to v7.0, changed "Colecciones + Clima" to "Calendario + Mix & Match"
+- FIX 14: Reordered tabs to 10 total: Sugerencias, Semanal, Inventario, Explorar, Colecciones, Calendario, Mix&Match, Favoritos, Asesor IA, Estadisticas
+- Added imports: CalendarDays, Shuffle, Download, Upload from lucide-react
+
+Stage Summary:
+- Complete v7.0 styling overhaul with cohesive amber-gold score system
+- Two new major features: Calendar (outfit history by date) and Mix & Match (garment combination finder)
+- Export/Import functionality for data backup in Stats tab
+- Star ratings now visible directly on suggestion cards
+- All 10 tabs in correct order with proper active color accents
+- 0 lint errors
