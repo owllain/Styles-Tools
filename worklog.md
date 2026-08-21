@@ -293,3 +293,157 @@ The StyleVault app is now at v4.0 - a comprehensive, production-quality outfit s
 4. **PWA support**: Make the app installable on mobile devices
 5. **Outfit rotation tracking**: Track which outfits were actually worn and when
 6. **Seasonal wardrobe suggestions**: Auto-suggest seasonal wardrobe transitions
+
+---
+Task ID: 7-a
+Agent: Main Agent
+Task: Create weather API route for real-time climate detection
+
+Work Log:
+- Created `/home/z/my-project/src/app/api/weather/route.ts` — GET endpoint
+- Fetches real-time weather from free wttr.in API (`https://wttr.in/San+Jose+Costa+Rica?format=j1`)
+- Maps temperature to app climate values: `frio` (<18°C), `templado` (18–26°C), `calor` (>26°C)
+- Returns JSON with: success, clima, tempC, tempF, description (Spanish), humidity, windSpeed, location
+- Implements module-level in-memory cache with 10-minute TTL to avoid hammering wttr.in
+- Includes comprehensive Spanish weather description dictionary (28 conditions mapped)
+- Fuzzy matching fallback for unmapped weather descriptions
+- Graceful error handling: serves stale cache on upstream failure, returns safe defaults with 503 if no cache exists
+- Verified working: returns real weather data for San José (e.g., clima: "templado", tempC: 18, description: "Nublado").
+- Lint passes with 0 errors
+
+Stage Summary:
+- New `/api/weather` endpoint live and returning real San José weather data in Spanish
+- 10-minute cache reduces external API calls
+- Stale-cache fallback ensures resilience against upstream outages
+- Ready for integration with the suggestion algorithm's clima parameter
+
+---
+Task ID: 7-b
+Agent: Main Agent
+Task: Create /api/collections endpoint with 8 themed outfit collections
+
+Work Log:
+- Created `/home/z/my-project/src/app/api/collections/route.ts` — GET endpoint
+- Imports outfit data via dynamic import: `const { outfits } = await import('@/data/wardrobe')`
+- Defined 8 pre-curated themed collections with filter functions:
+  1. `power-week` (🏢 Semana de Poder) — corporate office/casual outfits (57 matches)
+  2. `noir-collection` (🖤 Noir Total) — all-dark palettes where every hex has HSL lightness < 40 (56 matches)
+  3. `weekend-vibes` (✨ Fin de Semana Perfecto) — outfits tagged fin_de_semana (47 matches)
+  4. `night-out` (🎸 Noches de Rock) — nocturnal + rockero/noir style (50 matches)
+  5. `old-money-essentials` (🍷 Esencia Old Money) — old_money style tag (35 matches)
+  6. `hot-weather` (☀️ Looks para Calor) — clima includes 'calor' (29 matches)
+  7. `cold-weather` (❄️ Abrigos y Elegancia) — clima includes 'frio' (59 matches)
+  8. `high-harmony` (🎨 Armonia Perfecta) — HSL-based color harmony check (79 matches)
+- Implemented inline `hexToHSL()` and `isHighHarmony()` helper functions for the high-harmony filter
+- Harmony logic: scores 80+ if (a) 80%+ of palette is neutral (sat<15), OR (b) at least 1 neutral exists AND 60%+ of chromatic colors are analogous (hue diff < 30°)
+- Each collection response includes: id, nombre, emoji, descripcion, color (hex gradient), outfitCount, outfits (first 6 with id/nombre/descripcion/paletaColores/estilo/ocasion)
+- Supports optional `?collection=<id>` query param to fetch a single collection; returns 404 with available IDs if not found
+- Lint passes with 0 errors
+- Verified working: all 8 collections return correct counts, single-collection query works, 404 handling works
+
+Stage Summary:
+- New `/api/collections` endpoint with 8 themed outfit collections
+- Total API endpoints now at 7 (suggest, outfits, outfits/[id], wardrobe, weekly, weather, collections)
+- Collections provide curated entry points for browsing the 130-outfit wardrobe by theme/mood
+---
+Task ID: 7-c
+Agent: Main Agent
+Task: Bug fixes, new features (Weather, Collections, Style DNA), major CSS overhaul
+
+Work Log:
+- **Fixed critical parsing error #1**: `AdvisorSection` function was nested inside `StatsSection` function body (line 1516 inside line 1514's function). Moved `AdvisorSection` to its own properly separated function definition.
+- **Fixed critical parsing error #2**: `TabsContent value="advisor"` was nested inside `TabsContent value="stats"` (lines 689-698). Separated into sibling `TabsContent` elements.
+- **Fixed missing JSX closing bracket**: `motion.div` tag on line 1598 was missing `>` before its children, causing cascading parse errors.
+- **Fixed long-line parsing issue**: `OutfitDetailDialog` props on line 725 exceeded 256 chars, broke ESLint parser. Multi-lined the JSX attributes.
+- **Fixed unclosed JSX comment**: `{/* === COLLECTIONS TAB === */` was missing `*/` closing sequence.
+- **Fixed `}}}` ambiguity**: `worn={worn || {}}` triple-brace sequence confused espree parser. Multi-lined props to resolve.
+- **Created `/api/weather` endpoint** (via subagent): Real-time weather for San José, CR from wttr.in with 10-min cache, Spanish descriptions, temperature-to-clima mapping.
+- **Created `/api/collections` endpoint** (via subagent): 8 pre-curated themed outfit collections with smart filters (noir dark-palette detection, HSL harmony scoring).
+- **Added Weather Auto-Detect feature**: "Auto-detectar" button in the Clima filter section. Fetches real weather, shows badge with temp/description, auto-sets the clima filter. Uses `glass-amber` styled card.
+- **Added Collections tab**: New 9th tab ("Colecciones") with 8 curated collection cards in a grid. Each card shows emoji, name, description, outfit count, and a fill-bar. Clicking expands to show 6 outfit previews that can be opened in the detail dialog.
+- **Added Style DNA Radar Chart**: SVG-based radar/spider chart in the Stats tab showing style distribution across 4 axes (Noir, Old Money, Rockero, Corporate). Uses weighted scoring from favorites (5pts), worn history (3pts/occurrence), and ratings (4pts/star). Shows dominant style with emoji, percentage bars, and descriptive text. Falls back to base distribution when no interactions exist.
+- **Major CSS overhaul** (`globals.css`):
+  - Darkened background from `#0a0a0b` to `#08080a` for deeper noir aesthetic
+  - Reduced border/shadow opacities throughout (0.05 → 0.04, 0.06 → 0.05, etc.)
+  - New `animate-orb-drift` keyframe for organic background orb movement
+  - New `animate-radar-sweep` for harmony ring rotation
+  - New `.gradient-mesh` utility with radial gradient overlay
+  - New `.glass-violet`, `.glass-rose`, `.glass-emerald` glassmorphism variants
+  - New `.collection-card` with gradient border reveal on hover
+  - New `.weather-badge` with subtle overlay
+  - New `.hover-lift` with translateY(-2px) and shadow
+  - New `.live-dot` with ping animation
+  - New `.text-gradient-violet`, `.text-gradient-emerald` gradient text utilities
+  - Enhanced `.weekly-card-shine` with wider sweep (60% → 50%) and cubic-bezier timing
+  - Refined scrollbar (4px width, 0.04 opacity, 0.09 hover)
+  - Enhanced glassmorphism with `saturate(1.2-1.3)` for richer blur
+  - Extended stagger-children to 10 levels (50ms delay)
+  - Smoother button transitions (cubic-bezier 0.4, 0, 0.2, 1)
+- **UI refinements**:
+  - Header: darker bg (`#08080a/80`), thinner border (`0.04`), live-dot with ping animation
+  - Background: `gradient-mesh` overlay + `animate-orb-drift` orbs (slower, more organic)
+  - Tab bar: 9 tabs total, collections tab with sky-blue active state
+  - Footer: v6.0, updated feature label ("Colecciones + Clima")
+
+Stage Summary:
+- App at v6.0 with 9 tabs, 7 API endpoints, 0 lint errors
+- 3 critical bugs fixed (nested function, nested TabsContent, missing bracket)
+- 3 new features: Weather Auto-Detect, Collections Tab, Style DNA Radar
+- 2 new API endpoints: /api/weather, /api/collections
+- CSS significantly refined with 4 new keyframes, 8 new utility classes
+- All 9 tabs verified working via agent-browser QA testing
+- Screenshots saved: stylevault-stats-dna.png, stylevault-collections.png
+
+---
+## Current Status (v6.0)
+
+### Project Assessment
+StyleVault is now a comprehensive, production-quality outfit suggestion system at v6.0:
+- 130 curated outfit combinations in the database
+- 46 garments across 8 categories
+- Smart suggestion algorithm with multi-dimensional scoring (100pts max)
+- 9-tab responsive dark UI with framer-motion animations
+- 7 API endpoints (suggest, outfits list, outfits detail, wardrobe, weekly, weather, collections)
+- 12+ major features: suggestions, weekly planner, inventory, explore, collections, favorites, statistics, style DNA, AI advisor chat, outfit sharing, comparison, color harmony, weather auto-detect
+- Real-time weather integration for San José, Costa Rica
+- SVG radar chart for personalized style profile visualization
+- 8 curated outfit collections by theme/mood
+- Deep noir glassmorphism theme with amber/gold accents and 12+ custom animations
+- Sonner toast notifications, localStorage persistence for all user data
+
+### Completed Modifications (This Session)
+- Fixed 5 critical parsing/build errors
+- Added Weather Auto-Detect (real API, auto-sets clima filter)
+- Added Collections tab with 8 themed collections
+- Added Style DNA radar chart in Statistics tab
+- Major CSS overhaul: darker theme, new animations, glassmorphism variants, refined interactions
+- Updated background to gradient-mesh with organic orb drift
+- Enhanced live indicator with ping animation
+- Footer updated to v6.0
+
+### Verification Results
+- `bun run lint`: 0 errors, 0 warnings
+- agent-browser QA: All 9 tabs render and function correctly
+- /api/weather: Returns real San José weather (verified: 18°C, Nublado, templado)
+- /api/collections: Returns 8 collections with correct outfit counts
+- /api/suggest: Returns ranked outfits with garment details
+- /api/weekly: Returns 7-day plan with garment details and scores
+- /api/outfits: Returns filtered outfit list
+- /api/outfits/[id]: Returns single outfit with full garment details
+- /api/wardrobe: Returns 46 garments
+- /api/advisor: LLM-powered chat (tested in previous session)
+- Screenshots: stylevault-stats-dna.png, stylevault-collections.png saved
+
+### Known Issues
+- Turbopack cold-start for /api/suggest is slow (~30s first time) due to large wardrobe.ts import
+- Dev server process may die in sandbox if idle too long
+- Weather API depends on external wttr.in service (fallback to stale cache)
+
+### Recommendations for Next Phase
+1. **Outfit image generation**: AI-generated visual mockups for each outfit combination
+2. **PWA support**: Make the app installable on mobile with service worker
+3. **Outfit rotation calendar**: Track which outfits were worn on specific dates with calendar view
+4. **Garment Mix & Match**: Select 2-3 garments and find all compatible outfits
+5. **Seasonal transitions**: Auto-suggest wardrobe changes between seasons
+6. **Export/Import**: Backup and restore favorites, history, ratings as JSON
+7. **Advanced AI advisor**: Image-aware advice (upload a photo and get outfit suggestions)
