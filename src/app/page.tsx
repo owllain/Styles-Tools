@@ -17,7 +17,7 @@ import {
   TrendingUp, ShirtIcon, Clock, MapPin, Zap, Star, Gem,
   Calendar, CalendarDays, Copy, Check, Share2, ArrowLeftRight, Timer, Sparkle, Compass, Award,
   MessageSquare, Send, CheckCircle2, UserCircle, Trash2, Thermometer, CloudRain, FolderOpen, Lock, Unlock, EyeOff,
-  Shuffle, Download, Upload
+  Shuffle, Download, Upload, Keyboard
 } from 'lucide-react';
 import type { Ocasion, Momento, Clima, Estilo } from '@/data/types';
 import { LABELS } from '@/data/types';
@@ -384,6 +384,19 @@ export default function StyleVaultPage() {
     } catch { toast.error('Error cargando outfits para comparar'); }
   }, [compareIds]);
 
+  // Keyboard shortcuts for tab navigation
+  useEffect(() => {
+    const tabKeys: Record<string, string> = { '1': 'suggest', '2': 'weekly', '3': 'wardrobe', '4': 'explore', '5': 'collections', '6': 'calendar', '7': 'mixmatch', '8': 'favorites', '9': 'advisor', '0': 'stats' };
+    const handler = (e: KeyboardEvent) => {
+      if (e.altKey && tabKeys[e.key]) {
+        e.preventDefault();
+        setActiveTab(tabKeys[e.key]);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col noise-bg gradient-mesh relative overflow-hidden bg-[#08080a]">
       {/* Background orbs */}
@@ -424,8 +437,9 @@ export default function StyleVaultPage() {
         </header>
 
         <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="bg-white/[0.025] border border-white/[0.05] rounded-2xl p-1.5 w-full sm:w-auto backdrop-blur-sm">
+          <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); const el = document.querySelector('.tab-scroll-inner'); if (el) { const trigger = el.querySelector(`[data-state="active"]`); if (trigger) trigger.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }); } }} className="w-full">
+            <div className="tab-scroll-container">
+              <TabsList className="tab-scroll-inner bg-white/[0.025] border border-white/[0.05] rounded-2xl p-1.5 w-full sm:w-auto backdrop-blur-sm">
               <TabsTrigger value="suggest" className="rounded-xl data-[state=active]:bg-amber-500/15 data-[state=active]:text-amber-400 data-[state=active]:shadow-[0_0_15px_rgba(245,158,11,0.08)] gap-1.5 text-xs sm:text-sm transition-all duration-300">
                 <Sparkles className="h-3.5 w-3.5" /><span className="hidden sm:inline">Sugerencias</span><span className="sm:hidden">AI</span>
               </TabsTrigger>
@@ -456,7 +470,8 @@ export default function StyleVaultPage() {
               <TabsTrigger value="stats" className="rounded-xl data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-400 gap-1.5 text-xs sm:text-sm transition-all duration-300">
                 <BarChart3 className="h-3.5 w-3.5" /><span className="hidden sm:inline">Estadisticas</span><span className="sm:hidden">{'\u{1F4CA}'}</span>
               </TabsTrigger>
-            </TabsList>
+              </TabsList>
+            </div>
 
             {/* === SUGERENCIAS TAB === */}
             <TabsContent value="suggest" className="mt-6">
@@ -631,20 +646,20 @@ export default function StyleVaultPage() {
                               <Dice5 className="h-4 w-4 text-amber-400" />
                             </div>
                           </div>
-                          <h2 className="text-2xl font-bold text-white/50 mb-2">{'\u00bf'}Que te vas a poner hoy?</h2>
-                          <p className="text-sm text-white/20 max-w-md mb-8 leading-relaxed">
+                          <h2 className="text-2xl font-bold text-gradient-amber mb-2">{'\u00bf'}Que te vas a poner hoy?</h2>
+                          <p className="text-sm text-white/25 max-w-md mb-8 leading-relaxed">
                             Configura tu ocasion, momento, clima y estetica para obtener sugerencias personalizadas de tu guardarropa.
                           </p>
-                          <Button variant="outline" size="lg" className="rounded-2xl border-white/[0.08] text-white/35 hover:text-amber-400 hover:border-amber-500/25 hover:bg-amber-500/5 gap-2 px-6 transition-all duration-300" onClick={getRandomOutfit} disabled={randomLoading}>
+                          <Button variant="outline" size="lg" className="rounded-2xl border-white/[0.08] text-white/40 hover:text-amber-300 hover:border-amber-500/25 hover:bg-amber-500/5 hover:shadow-[0_0_20px_rgba(212,168,67,0.06)] gap-2 px-6 transition-all duration-300" onClick={getRandomOutfit} disabled={randomLoading}>
                             {randomLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Dice5 className="h-4 w-4" />}
                             Sorprendeme
                           </Button>
                           {history.length > 0 && (
                             <div className="mt-8">
-                              <p className="text-[10px] text-white/15 uppercase tracking-[0.15em] mb-3 font-semibold">Recientes</p>
+                              <p className="text-[10px] text-white/20 uppercase tracking-[0.15em] mb-3 font-semibold flex items-center gap-1.5 justify-center"><Clock className="h-3 w-3" />Recientes</p>
                               <div className="flex gap-1.5 justify-center flex-wrap max-w-lg">
                                 {history.slice(0, 8).map(id => (
-                                  <span key={id} className="text-[10px] px-2.5 py-1 rounded-full bg-white/[0.025] border border-white/[0.04] text-white/20 font-mono">{id}</span>
+                                  <span key={id} className="text-[10px] px-2.5 py-1 rounded-full bg-white/[0.025] border border-white/[0.04] text-white/25 font-mono hover:bg-white/[0.04] hover:text-white/40 transition-colors cursor-default">{id}</span>
                                 ))}
                               </div>
                             </div>
@@ -701,7 +716,8 @@ export default function StyleVaultPage() {
                                   compareMode={compareIds.length > 0}
                                   isComparing={compareIds.includes(s.outfit.id)}
                                   onToggleCompare={() => toggleCompare(s.outfit.id)}
-                                  rating={ratings[s.outfit.id]} onRate={rate} />
+                                  rating={ratings[s.outfit.id]} onRate={rate}
+                                  wornRecently={!!worn[s.outfit.id] && (Date.now() - worn[s.outfit.id].date < 7 * 24 * 60 * 60 * 1000)} />
                               </motion.div>
                             ))}
                           </AnimatePresence>
@@ -764,22 +780,28 @@ export default function StyleVaultPage() {
         </main>
 
         {/* Footer */}
-        <footer className="border-t border-white/[0.03] mt-auto bg-[#08080a]/60 backdrop-blur-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded-md bg-gradient-to-br from-amber-500/25 to-amber-900/20 flex items-center justify-center">
-                <Warehouse className="h-2.5 w-2.5 text-amber-400/50" />
+        <footer className="footer-enhanced mt-auto relative">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-5 h-5 rounded-md bg-gradient-to-br from-amber-500/30 to-amber-900/25 flex items-center justify-center">
+                <Warehouse className="h-2.5 w-2.5 text-amber-400/70" />
               </div>
-              <p className="text-[10px] text-white/12 font-medium">StyleVault v7.0 \u{2014} Enrique Cascante</p>
+              <p className="text-[11px] text-white/35 font-semibold tracking-tight">StyleVault <span className="text-amber-400/60">v8.0</span></p>
+              <span className="text-white/10">|</span>
+              <p className="text-[11px] text-white/25 font-medium">Enrique Cascante</p>
             </div>
-            <div className="flex items-center gap-3 text-[10px] text-white/10 font-medium">
-              <span>130 outfits</span>
-              <div className="w-px h-2.5 bg-white/[0.04]" />
-              <span>46 prendas</span>
-              <div className="w-px h-2.5 bg-white/[0.04]" />
-              <span>4 esteticas</span>
-              <div className="w-px h-2.5 bg-white/[0.04]" />
-              <span className="text-sky-400/30">Calendario + Mix & Match</span>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5 text-[11px] text-white/20 font-medium">
+                <span className="flex items-center gap-1"><Sparkles className="h-3 w-3 text-amber-400/40" />130 outfits</span>
+                <div className="w-px h-3 bg-white/[0.06]" />
+                <span className="flex items-center gap-1"><Layers className="h-3 w-3 text-white/15" />46 prendas</span>
+                <div className="w-px h-3 bg-white/[0.06]" />
+                <span className="flex items-center gap-1"><Palette className="h-3 w-3 text-white/15" />4 esteticas</span>
+              </div>
+              <div className="hidden md:flex items-center gap-1.5 ml-2 pl-2.5 border-l border-white/[0.06]">
+                <Keyboard className="h-3 w-3 text-white/10" />
+                <span className="text-[10px] text-white/15">Alt+1-9 tabs</span>
+              </div>
             </div>
           </div>
         </footer>
@@ -810,14 +832,14 @@ export default function StyleVaultPage() {
 /* ============================================================
    OUTFIT CARD ROW (Suggestions Tab)
    ============================================================ */
-function OutfitCardRow({ suggestion, rank, selected, onSelect, isFav, onToggleFav, onViewDetail, onShare, compareMode, isComparing, onToggleCompare, rating, onRate }: {
-  suggestion: Suggestion; rank: number; selected: boolean; onSelect: () => void; isFav?: boolean; onToggleFav?: () => void; onViewDetail?: () => void; onShare?: () => void; compareMode?: boolean; isComparing?: boolean; onToggleCompare?: () => void; rating?: number; onRate?: (id: string, stars: number) => void;
+function OutfitCardRow({ suggestion, rank, selected, onSelect, isFav, onToggleFav, onViewDetail, onShare, compareMode, isComparing, onToggleCompare, rating, onRate, wornRecently }: {
+  suggestion: Suggestion; rank: number; selected: boolean; onSelect: () => void; isFav?: boolean; onToggleFav?: () => void; onViewDetail?: () => void; onShare?: () => void; compareMode?: boolean; isComparing?: boolean; onToggleCompare?: () => void; rating?: number; onRate?: (id: string, stars: number) => void; wornRecently?: boolean;
 }) {
   const { outfit, garments, matchDetails, score } = suggestion;
   const matchCount = [matchDetails.ocasion, matchDetails.momento, matchDetails.clima, matchDetails.estilo].filter(Boolean).length;
   const harmony = getHarmonyScore(outfit.paletaColores);
   return (
-    <Card className={`outfit-card-refined border rounded-2xl overflow-hidden transition-all duration-300 group backdrop-blur-sm weekly-card-shine {
+    <Card className={`outfit-card-refined ${outfit.estilo.includes('noir') ? 'style-noir' : outfit.estilo.includes('old_money') ? 'style-old_money' : outfit.estilo.includes('rockero') ? 'style-rockero' : 'style-corporate'} border rounded-2xl overflow-hidden transition-all duration-300 group backdrop-blur-sm weekly-card-shine {
       isComparing ? 'border-amber-500/30 shadow-[0_0_25px_-5px_rgba(245,158,11,0.1)] animate-glow-pulse' :
       selected ? 'border-amber-500/20 shadow-[0_0_30px_-5px_rgba(245,158,11,0.06)]' : 'border-white/[0.04] hover:border-white/[0.08] hover:shadow-lg hover:shadow-black/20'
     }`}>
@@ -833,12 +855,15 @@ function OutfitCardRow({ suggestion, rank, selected, onSelect, isFav, onToggleFa
             }`}>#{rank}</span>
             <div className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${getScoreBg(score)} ${getScoreColor(score)}`}>{Math.round(score)}%</div>
             <div className={`w-12 h-1.5 rounded-full bg-white/[0.04] overflow-hidden`}><div className={`h-full rounded-full ${getScoreBarColor(score)} transition-all duration-700`} style={{ width: `${score}%` }} /></div>
-            <span className="text-[10px] text-white/18">{matchCount}/4</span>
+            <span className="text-[10px] text-white/30">{matchCount}/4</span>
             {/* Harmony mini indicator */}
             <div className="hidden sm:flex items-center gap-1 ml-1">
               <div className={`w-1.5 h-1.5 rounded-full ${harmony.score >= 75 ? 'bg-amber-400' : harmony.score >= 55 ? 'bg-amber-400/60' : 'bg-amber-400/30'}`} />
-              <span className="text-[9px] text-white/15 font-mono">{harmony.score}</span>
+              <span className="text-[9px] text-white/25 font-mono">{harmony.score}</span>
             </div>
+            {wornRecently && (
+              <span className="worn-badge"><CheckCircle2 className="h-2.5 w-2.5" />Reciente</span>
+            )}
           </div>
           <div className="flex items-center gap-0.5">
             {compareMode && onToggleCompare && (
@@ -877,7 +902,7 @@ function OutfitCardRow({ suggestion, rank, selected, onSelect, isFav, onToggleFa
           <div className="flex items-center gap-2 mt-4">
             <div className="flex -space-x-1">
               {outfit.paletaColores.map((color, i) => (
-                <div key={i} className="w-7 h-7 rounded-full border-2 border-[#0a0a0b] shadow-md transition-transform hover:scale-125 hover:z-10 relative" style={{ backgroundColor: color, zIndex: outfit.paletaColores.length - i }} title={color} />
+                <div key={i} className="color-swatch w-7 h-7 relative" style={{ backgroundColor: color, zIndex: outfit.paletaColores.length - i }} title={color} />
               ))}
             </div>
             <div className="flex-1" />
@@ -896,7 +921,7 @@ function OutfitCardRow({ suggestion, rank, selected, onSelect, isFav, onToggleFa
               <h4 className="text-[10px] font-semibold text-white/25 uppercase tracking-[0.15em] mb-3">Prendas del Outfit</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                 {garments.map((g) => (
-                  <div key={g.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/[0.03] hover:bg-white/[0.04] transition-colors">
+                  <div key={g.id} className="garment-item flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/[0.03]">
                     <span className="text-base">{g.emoji}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-[11px] text-white/65 truncate font-medium">{g.nombre}</p>
@@ -1535,15 +1560,13 @@ function FavoritesSection({ favs, isFav, onToggleFav, onViewDetail }: { favs: st
 
   if (favs.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-[50vh] text-center">
-        <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', duration: 0.6 }}>
-          <div className="w-20 h-20 rounded-3xl bg-rose-500/[0.04] border border-rose-500/[0.08] flex items-center justify-center mb-6 animate-float">
-            <Heart className="h-8 w-8 text-rose-500/15" />
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="empty-state-icon">
+              <Heart className="h-7 w-7 text-rose-400/30" />
+            </div>
+            <p className="text-sm font-medium text-white/40 mb-1.5">Sin favoritos aun</p>
+            <p className="text-xs text-white/20 max-w-[240px] leading-relaxed">Guarda los outfits que mas te gusten con el icono de corazon para acceder a ellos rapidamente</p>
           </div>
-          <h2 className="text-xl font-semibold text-white/40 mb-2">Sin favoritos aun</h2>
-          <p className="text-sm text-white/20 max-w-sm">Haz clic en el corazon de cualquier outfit para guardarlo aqui.</p>
-        </motion.div>
-      </div>
     );
   }
 
@@ -1680,6 +1703,15 @@ function WornCalendarSection({ worn, onViewDetail }: { worn: Record<string, Worn
           </div>
         </CardContent>
       </Card>
+      {!selectedDate ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <div className="empty-state-icon">
+                      <CalendarDays className="h-7 w-7 text-emerald-400/30" />
+                    </div>
+                    <p className="text-sm font-medium text-white/40 mb-1">Selecciona un dia</p>
+                    <p className="text-xs text-white/20 max-w-[200px] leading-relaxed">Haz clic en un dia del calendario para ver o registrar tu outfit</p>
+                  </div>
+      ) : (
       <AnimatePresence>
         {selectedDate && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-3">
@@ -1694,6 +1726,7 @@ function WornCalendarSection({ worn, onViewDetail }: { worn: Record<string, Worn
           </motion.div>
         )}
       </AnimatePresence>
+      )}
     </div>
   );
 }
@@ -1758,12 +1791,12 @@ function MixMatchSection({ onViewDetail }: { onViewDetail: (s: Suggestion) => vo
       )}
       <div className="flex flex-wrap gap-1.5">
         {CATEGORIES.map(cat => (
-          <button key={cat.id || 'all'} onClick={() => setFilterCat(cat.id)} className={`px-3 py-1.5 rounded-lg border text-[10px] font-medium transition-all ${filterCat === cat.id ? 'bg-white/[0.06] border-white/[0.12] text-white' : 'border-white/[0.03] text-white/25 hover:text-white/45'}`}>
+          <button key={cat.id || 'all'} onClick={() => setFilterCat(cat.id)} className={`px-3 py-1.5 rounded-lg border text-[10px] font-medium transition-all duration-200 ${filterCat === cat.id ? 'bg-amber-500/10 border-amber-500/20 text-amber-300 shadow-[0_0_10px_rgba(212,168,67,0.06)]' : 'border-white/[0.03] text-white/25 hover:text-white/50 hover:bg-white/[0.02]'}`}>
             {cat.emoji} {cat.label}
           </button>
         ))}
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 max-h-52 overflow-y-auto pr-1">
         {filtered.map(g => (
           <button key={g.id} onClick={() => toggleGarment(g.id)} className={`garment-chip ${selected.includes(g.id) ? 'selected' : ''}`}>
             <span className="chip-color" style={{ backgroundColor: g.colorHex }} />
@@ -1772,21 +1805,39 @@ function MixMatchSection({ onViewDetail }: { onViewDetail: (s: Suggestion) => vo
         ))}
       </div>
       {results.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-white/70">{results.length} outfits encontrados</h3>
+        <motion.div className="space-y-3" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+          <h3 className="text-sm font-semibold text-white/60 flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-400/60" />{results.length} outfit{results.length !== 1 ? 's' : ''} encontrado{results.length !== 1 ? 's' : ''}</h3>
           {results.map(s => (
-            <div key={s.outfit.id} onClick={() => onViewDetail(s)} className="flex items-center gap-4 px-5 py-4 rounded-2xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.035] cursor-pointer transition-all">
-              <div className="flex -space-x-1.5">{s.outfit.paletaColores.map((c, i) => <div key={i} className="w-7 h-7 rounded-full border-2 border-[#08080a] shadow" style={{ backgroundColor: c }} />)}</div>
+            <div key={s.outfit.id} onClick={() => onViewDetail(s)} className="flex items-center gap-4 px-5 py-4 rounded-2xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] hover:border-white/[0.08] cursor-pointer transition-all duration-200 group">
+              <div className="flex -space-x-1.5">{s.outfit.paletaColores.map((c, i) => <div key={i} className="color-swatch w-7 h-7" style={{ backgroundColor: c, zIndex: 10 - i }} />)}</div>
               <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-semibold text-white/80 truncate">{s.outfit.nombre}</h4>
-                <p className="text-[11px] text-white/35 mt-0.5 truncate">{s.outfit.descripcion}</p>
+                <h4 className="text-sm font-semibold text-white/75 group-hover:text-white/90 truncate transition-colors">{s.outfit.nombre}</h4>
+                <p className="text-[11px] text-white/30 mt-0.5 truncate">{s.outfit.descripcion}</p>
               </div>
-              <ChevronRight className="h-4 w-4 text-white/15 flex-shrink-0" />
+              <Eye className="h-4 w-4 text-white/10 group-hover:text-amber-400/60 transition-colors flex-shrink-0" />
             </div>
           ))}
+        </motion.div>
+      )}
+      {!searching && selected.length === 0 && results.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="empty-state-icon">
+            <Shuffle className="h-7 w-7 text-rose-400/30" />
+          </div>
+          <p className="text-sm font-medium text-white/40 mb-1.5">Selecciona prendas</p>
+          <p className="text-xs text-white/20 max-w-[240px] leading-relaxed">Elige hasta 3 prendas de tu guardarropa para encontrar outfits compatibles</p>
         </div>
       )}
-      {searching && <Skeleton className="h-32 rounded-xl" />}
+      {!searching && selected.length > 0 && results.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-10 text-center">
+          <div className="empty-state-icon">
+            <Search className="h-7 w-7 text-white/15" />
+          </div>
+          <p className="text-sm font-medium text-white/35 mb-1.5">Busca outfits</p>
+          <p className="text-xs text-white/20 max-w-[200px] leading-relaxed">Haz clic en "Buscar Outfits" para encontrar combinaciones con tus prendas</p>
+        </div>
+      )}
+      {searching && <div className="space-y-2"><Skeleton className="h-20 rounded-xl" /><Skeleton className="h-20 rounded-xl w-4/5" /></div>}
     </div>
   );
 }

@@ -477,3 +477,121 @@ Stage Summary:
 - Star ratings now visible directly on suggestion cards
 - All 10 tabs in correct order with proper active color accents
 - 0 lint errors
+
+---
+Task ID: 9
+Agent: Main Agent
+Task: v8.0 styling overhaul, bug fixes, and new features
+
+Work Log:
+- **QA Testing**: Full QA via agent-browser on all 10 tabs, VLM visual analysis on 4+ screenshots
+- **FIX 1**: Improved footer contrast from `text-white/12` to `text-white/35`, added icons, keyboard shortcut hint
+- **FIX 2**: Improved tag contrast (ocasion/momento/clima/estilo) from 0.7 opacity to 0.85, background from 0.06 to 0.08, border from 0.10 to 0.15
+- **FIX 3**: Improved match count visibility from `text-white/18` to `text-white/30`
+- **FIX 4**: Improved harmony score visibility from `text-white/15` to `text-white/25`
+- **FIX 5**: Fixed color swatch inconsistency - replaced inline border/shadow styles with consistent `.color-swatch` CSS class
+- **FIX 6**: Fixed `motion.div` closing tag error in MixMatchSection (was `</div>`, corrected to `</motion.div>`)
+- **FIX 7**: Calendar day cells improved: larger touch targets (52px→56px), better today highlight with box-shadow, hover states, changed `cursor:default` to `cursor:pointer`
+- **FIX 8**: Mix&Match garment chips now have `max-h-52 overflow-y-auto` to prevent overwhelming density
+- **NEW 1**: Style-colored left accent borders on outfit cards - each style gets a unique color:
+  - Noir Sophistique = violet (`rgba(139, 92, 246, 0.5)`)
+  - Old Money = emerald (`rgba(16, 185, 129, 0.5)`)
+  - Rockero = rose (`rgba(244, 63, 94, 0.5)`)
+  - Corporate Tech = amber (`rgba(212, 168, 67, 0.5)`)
+  - Animated on hover with 0.3s transition
+- **NEW 2**: Scrollable tab bar with gradient fade edges - wraps TabsList in scrollable container, auto-scrolls active tab into view
+- **NEW 3**: Keyboard shortcuts - Alt+1 through Alt+0 for quick tab navigation (10 tabs)
+- **NEW 4**: "Worn Recently" badge on suggestion cards - shows green badge with CheckCircle2 icon for outfits worn in last 7 days
+- **NEW 5**: Enhanced empty states with `.empty-state-icon` component:
+  - Favorites: Heart icon + descriptive text
+  - Calendar: CalendarDays icon + "Selecciona un dia"
+  - Mix & Match (no selection): Shuffle icon + instructions
+  - Mix & Match (has selection, no search): Search icon + "Busca outfits"
+- **NEW 6**: Footer completely redesigned:
+  - `.footer-enhanced` class with gradient bg and backdrop-blur
+  - Amber center glow line (::before pseudo-element)
+  - Icons next to stats (Sparkles, Layers, Palette)
+  - Keyboard shortcut hint on desktop (`Alt+1-9 tabs`)
+  - Version label: `StyleVault v8.0`
+- **NEW 7**: CSS utility classes added:
+  - `.empty-state-icon` - Styled container with conic-gradient border
+  - `.worn-badge` - Green badge for recently worn items
+  - `.kbd` - Keyboard shortcut indicator style
+  - `.color-swatch` - Consistent swatch with shadow and hover scale
+  - `.footer-enhanced` - Enhanced footer with gradient and glow
+  - `.garment-item` - Garment list item with hover translateX effect
+  - `.tab-scroll-container` / `.tab-scroll-inner` - Scrollable tab system
+  - `.animate-slot-spin` - Slot machine animation for Look del Dia
+- **NEW 8**: Mix&Match category filter now uses amber active state instead of white
+- **NEW 9**: Suggestions empty state title uses `text-gradient-amber` class, better button hover with shadow
+- **NEW 10**: "Recientes" history section gets Clock icon and improved contrast
+
+Stage Summary:
+- App upgraded from v7.0 to v8.0
+- 8 bug fixes (contrast, consistency, parsing, layout)
+- 10 new features/improvements
+- 7 new CSS utility classes, 12+ CSS rules added
+- `Keyboard` icon imported from lucide-react
+- 0 lint errors, all 10 tabs verified working
+- VLM analysis confirms improved contrast, polished design, footer rated 8/10
+- Screenshots saved: qa-v8-initial.png, qa-v8-suggestions.png, qa-v8-stats.png, qa-v8-favorites.png, qa-v8-mixmatch.png, qa-v8-calendar.png, qa-v8-footer.png
+
+---
+## Current Status (v8.0)
+
+### Project Assessment
+StyleVault is a comprehensive, production-quality outfit suggestion system at v8.0:
+- 130 curated outfit combinations in the database
+- 46 garments across 8 categories
+- Smart suggestion algorithm with multi-dimensional scoring (100pts max)
+- 10-tab responsive dark UI with framer-motion animations
+- 7 API endpoints (suggest, outfits list, outfits detail, wardrobe, weekly, weather, collections)
+- 15+ major features: suggestions, weekly planner, inventory, explore, collections, favorites, statistics, style DNA, AI advisor chat, outfit sharing, comparison, color harmony, weather auto-detect, keyboard shortcuts, worn tracking
+- Real-time weather integration for San José, Costa Rica
+- SVG radar chart for personalized style profile visualization
+- 8 curated outfit collections by theme/mood
+- Style-colored left accent borders on outfit cards (noir=violet, old_money=emerald, rockero=rose, corporate=amber)
+- Scrollable tab bar with gradient fade edges for mobile
+- Keyboard shortcuts (Alt+1-0) for power users
+- Deep noir glassmorphism theme with amber/gold accents and 15+ custom animations
+- Sonner toast notifications, localStorage persistence for all user data
+- "Worn Recently" badge on suggestion cards
+- Enhanced empty states with custom icon containers
+- Consistent color swatch system across all views
+
+### Completed Modifications (This Session)
+- Fixed 8 visual/contrast/consistency bugs
+- Added style-colored left accent borders on outfit cards
+- Implemented scrollable tab bar with gradient edges
+- Added Alt+1-0 keyboard shortcuts for tab navigation
+- Added "Worn Recently" badge on suggestion cards
+- Enhanced 4 empty states (favorites, calendar, mix&match x2)
+- Completely redesigned footer with icons, keyboard hint, and amber glow line
+- Improved tag contrast system (all 4 tag types)
+- Created consistent color swatch CSS class
+- Improved calendar day cells (touch targets, today highlight, hover)
+- Added Mix&Match scrollable garment area and amber category active state
+- Enhanced suggestions empty state with gradient title and better button
+- Added 7 new CSS utility classes and 12+ CSS rules
+
+### Verification Results
+- `bun run lint`: 0 errors, 0 warnings
+- agent-browser QA: All 10 tabs render and function correctly
+- VLM analysis: Improved contrast confirmed, footer rated 8/10, professional dark-mode design
+- All API endpoints returning 200 status
+- Dev server: Clean compilation, no runtime errors
+
+### Known Issues
+- Turbopack cold-start for /api/suggest is slow (~30s first time) due to large wardrobe.ts import
+- Weather API depends on external wttr.in service (fallback to stale cache)
+- "1 Issue" badge in screenshots is Next.js DevTools overlay (dev-only, not a bug)
+
+### Recommendations for Next Phase
+1. **Outfit image generation**: AI-generated visual mockups for each outfit combination (via image-generation skill)
+2. **PWA support**: Make the app installable on mobile with service worker and manifest
+3. **Outfit rotation calendar**: Drag-and-drop outfits onto calendar dates
+4. **Seasonal transitions**: Auto-suggest wardrobe changes between seasons based on weather trends
+5. **Advanced AI advisor with VLM**: Upload a photo and get outfit suggestions based on what you're wearing
+6. **Sound effects**: Subtle audio feedback for outfit selection and tab switching
+7. **Dark/Light theme toggle**: Although the noir theme is core, a light variant could work for daytime use
+8. **Export as PDF/PPTX**: Generate professional lookbooks from favorites or weekly plans
