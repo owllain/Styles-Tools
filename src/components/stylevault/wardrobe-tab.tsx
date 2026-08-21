@@ -23,16 +23,20 @@ export function WardrobeTab() {
   const [loading, setLoading] = useState(false);
   const [category, setCategory] = useState<string | null>(null);
 
-  const loadAll = useCallback(async () => {
-    try {
-      const res = await fetch('/api/wardrobe');
-      const data = await res.json();
-      setAllItems(data.prendas || []);
-      setItems(data.prendas || []);
-    } catch (e) { console.error(e); }
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/wardrobe');
+        const data = await res.json();
+        if (!cancelled) {
+          setAllItems(data.prendas || []);
+          setItems(data.prendas || []);
+        }
+      } catch (e) { console.error(e); }
+    })();
+    return () => { cancelled = true; };
   }, []);
-
-  useEffect(() => { loadAll(); }, [loadAll]);
 
   const handleCategory = (cat: string | null) => {
     setCategory(cat);
