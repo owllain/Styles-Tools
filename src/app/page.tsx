@@ -296,7 +296,12 @@ export default function StyleVaultPage() {
   const [compareData, setCompareData] = useState<Suggestion[]>([]);
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
-  const greeting = useMemo(getTimeGreeting, []);
+  const [greeting, setGreeting] = useState({ text: 'Hola', emoji: '\u{1F44B}', sub: 'Cargando...' });
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setGreeting(getTimeGreeting());
+    setMounted(true);
+  }, []);
 
   const detectWeather = useCallback(async () => {
     setWeatherLoading(true);
