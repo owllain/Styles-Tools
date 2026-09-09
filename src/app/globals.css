@@ -805,6 +805,60 @@ input[type="text"]:focus, input[type="search"]:focus {
 }
 
 /* ============================================================
+   MOBILE ENHANCEMENTS
+   ============================================================ */
+
+@media (max-width: 640px) {
+  /* Larger touch targets for tabs */
+  .tab-scroll-inner [role="tab"] {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 8px 12px;
+    font-size: 11px;
+  }
+
+  /* Better mobile card padding */
+  .tab-scroll-inner {
+    padding-bottom: 4px;
+  }
+
+  /* Mobile-friendly preset grid */
+  .mobile-preset-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+
+  /* Improve mobile text readability */
+  .mobile-readable {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  /* Mobile outfit card full width */
+  .mobile-outfit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Better mobile section spacing */
+  main {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  /* Mobile header compact */
+  header {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  /* Ensure buttons meet 44px minimum */
+  button[class*="h-8"],
+  button[class*="h-9"] {
+    min-height: 44px;
+  }
+}
+
+/* ============================================================
    EMPTY STATE ENHANCED
    ============================================================ */
 

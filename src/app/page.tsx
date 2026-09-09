@@ -446,7 +446,7 @@ export default function StyleVaultPage() {
                 <div className="relative w-1.5 h-1.5 rounded-full bg-emerald-400 live-dot">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                 </div>
-                <span className="text-[10px] text-white/30 font-medium">130 outfits</span>
+                <span className="text-[10px] text-white/30 font-medium">145 outfits</span>
               </div>
             </div>
           </div>
@@ -525,8 +525,8 @@ export default function StyleVaultPage() {
                             </div>
                             <p className="text-lg mb-0.5">{greeting.emoji}</p>
                             <p className="text-xs font-semibold text-white/70">{greeting.text}, Enrique</p>
-                            <p className="text-[10px] text-white/30 mt-0.5">{greeting.sub}</p>
-                            <Button size="sm" className="mt-3 h-9 bg-gradient-to-r from-amber-600/90 to-amber-700/90 hover:from-amber-500 hover:to-amber-600 text-[11px] rounded-xl gap-2 shadow-lg shadow-amber-900/25 border border-amber-500/25 animate-pulse-glow transition-all duration-300" onClick={getRandomOutfit} disabled={randomLoading}>
+                            <p className="text-[11px] sm:text-[10px] text-white/40 sm:text-white/30 mt-0.5">{greeting.sub}</p>
+                            <Button size="sm" className="mt-3 h-11 sm:h-9 w-full sm:w-auto bg-gradient-to-r from-amber-600/90 to-amber-700/90 hover:from-amber-500 hover:to-amber-600 text-[12px] sm:text-[11px] rounded-xl gap-2 shadow-lg shadow-amber-900/25 border border-amber-500/25 animate-pulse-glow transition-all duration-300" onClick={getRandomOutfit} disabled={randomLoading}>
                               {randomLoading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Sparkle className="h-3.5 w-3.5" />}
                               Look del Dia
                               <span className="text-[9px] text-amber-300/50 font-mono">RANDOM</span>
@@ -539,9 +539,9 @@ export default function StyleVaultPage() {
                             <div className="grid grid-cols-2 gap-1.5">
                               {PRESETS.map(p => (
                                 <button key={p.name} onClick={() => applyPreset(p)}
-                                  className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl border border-white/[0.04] bg-white/[0.015] hover:bg-white/[0.05] hover:border-white/[0.1] transition-all duration-200 text-left group">
-                                  <span className="text-sm group-hover:scale-110 transition-transform duration-200">{p.emoji}</span>
-                                  <span className="text-[10px] text-white/45 group-hover:text-white/75 font-medium leading-tight transition-colors">{p.name}</span>
+                                  className="flex items-center gap-1.5 px-2.5 py-2.5 sm:py-2 rounded-xl border border-white/[0.04] bg-white/[0.015] hover:bg-white/[0.05] hover:border-white/[0.1] transition-all duration-200 text-left group min-h-[44px] sm:min-h-0">
+                                  <span className="text-base sm:text-sm group-hover:scale-110 transition-transform duration-200">{p.emoji}</span>
+                                  <span className="text-[11px] sm:text-[10px] text-white/50 sm:text-white/45 group-hover:text-white/75 font-medium leading-tight transition-colors">{p.name}</span>
                                 </button>
                               ))}
                             </div>
@@ -561,7 +561,7 @@ export default function StyleVaultPage() {
                                   <div className={`p-1.5 rounded-lg transition-colors ${ocasion === opt.value ? 'bg-white/10' : 'bg-white/[0.03]'}`}>{opt.icon}</div>
                                   <div className="flex-1 min-w-0">
                                     <div className="text-xs font-medium truncate">{LABELS.ocasion[opt.value]}</div>
-                                    <div className={`text-[10px] mt-0.5 transition-colors ${ocasion === opt.value ? 'text-white/45' : 'text-white/18'}`}>{opt.desc}</div>
+                                    <div className={`text-[10px] sm:text-[10px] mt-0.5 transition-colors ${ocasion === opt.value ? 'text-white/50' : 'text-white/25'}`}>{opt.desc}</div>
                                   </div>
                                   {ocasion === opt.value && <div className="w-1.5 h-1.5 rounded-full bg-white/60 shadow-[0_0_6px_rgba(255,255,255,0.3)]" />}
                                 </button>
@@ -810,9 +810,9 @@ export default function StyleVaultPage() {
             </div>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2.5 text-[11px] text-white/20 font-medium">
-                <span className="flex items-center gap-1"><Sparkles className="h-3 w-3 text-amber-400/40" />130 outfits</span>
+                <span className="flex items-center gap-1"><Sparkles className="h-3 w-3 text-amber-400/40" />145 outfits</span>
                 <div className="w-px h-3 bg-white/[0.06]" />
-                <span className="flex items-center gap-1"><Layers className="h-3 w-3 text-white/15" />46 prendas</span>
+                <span className="flex items-center gap-1"><Layers className="h-3 w-3 text-white/15" />59 prendas</span>
                 <div className="w-px h-3 bg-white/[0.06]" />
                 <span className="flex items-center gap-1"><Palette className="h-3 w-3 text-white/15" />4 esteticas</span>
               </div>
@@ -865,7 +865,7 @@ function OutfitCardRow({ suggestion, rank, selected, onSelect, isFav, onToggleFa
     }`}>
       <CardContent className="p-0">
         {/* Top bar: rank + score + actions */}
-        <div className="flex items-center justify-between px-6 pt-5 pb-3">
+        <div className="flex items-center justify-between px-4 sm:px-6 pt-4 sm:pt-5 pb-2 sm:pb-3">
           <div className="flex items-center gap-2.5">
             <span className={`text-[11px] font-black tabular-nums w-8 h-8 rounded-lg flex items-center justify-center border ${
               rank === 1 ? 'bg-gradient-to-br from-amber-500/25 to-amber-700/15 border-amber-500/30 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.12)]' :
@@ -887,33 +887,33 @@ function OutfitCardRow({ suggestion, rank, selected, onSelect, isFav, onToggleFa
           </div>
           <div className="flex items-center gap-0.5">
             {compareMode && onToggleCompare && (
-              <button className={`h-7 w-7 p-0 rounded-lg transition-all duration-200 flex items-center justify-center ${isComparing ? 'text-amber-400 bg-amber-500/10' : 'text-white/10 hover:text-amber-400 hover:bg-amber-500/5'}`} onClick={(e) => { e.stopPropagation(); onToggleCompare(); }} title="Comparar">
-                <ArrowLeftRight className="h-3 w-3" />
+              <button className={`h-8 w-8 sm:h-7 sm:w-7 p-0 rounded-lg transition-all duration-200 flex items-center justify-center ${isComparing ? 'text-amber-400 bg-amber-500/10' : 'text-white/10 hover:text-amber-400 hover:bg-amber-500/5'}`} onClick={(e) => { e.stopPropagation(); onToggleCompare(); }} title="Comparar">
+                <ArrowLeftRight className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
               </button>
             )}
             {onMarkWorn && (
-              <button className='h-7 w-7 p-0 rounded-lg transition-all duration-200 flex items-center justify-center text-white/10 hover:text-emerald-400 hover:bg-emerald-500/5' onClick={(e) => { e.stopPropagation(); onMarkWorn(); }} title='Marcar como vestido'>
-                <CheckCircle2 className='h-3 w-3' />
+              <button className='h-8 w-8 sm:h-7 sm:w-7 p-0 rounded-lg transition-all duration-200 flex items-center justify-center text-white/10 hover:text-emerald-400 hover:bg-emerald-500/5' onClick={(e) => { e.stopPropagation(); onMarkWorn(); }} title='Marcar como vestido'>
+                <CheckCircle2 className='h-3.5 w-3.5 sm:h-3 sm:w-3' />
               </button>
             )}
             {onShare && (
-              <button className="h-7 w-7 p-0 rounded-lg transition-all duration-200 flex items-center justify-center text-white/10 hover:text-white/40" onClick={(e) => { e.stopPropagation(); onShare(); }} title="Compartir">
-                <Share2 className="h-3 w-3" />
+              <button className="h-8 w-8 sm:h-7 sm:w-7 p-0 rounded-lg transition-all duration-200 flex items-center justify-center text-white/10 hover:text-white/40" onClick={(e) => { e.stopPropagation(); onShare(); }} title="Compartir">
+                <Share2 className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
               </button>
             )}
             {onToggleFav && (
-              <button className={`h-7 w-7 p-0 rounded-lg transition-all duration-200 flex items-center justify-center ${isFav ? 'text-rose-400 hover:text-rose-300' : 'text-white/10 hover:text-rose-400'}`} onClick={(e) => { e.stopPropagation(); onToggleFav(); }}>
-                <Heart className={`h-3.5 w-3.5 transition-all ${isFav ? 'fill-rose-400 scale-110' : ''}`} />
+              <button className={`h-8 w-8 sm:h-7 sm:w-7 p-0 rounded-lg transition-all duration-200 flex items-center justify-center ${isFav ? 'text-rose-400 hover:text-rose-300' : 'text-white/10 hover:text-rose-400'}`} onClick={(e) => { e.stopPropagation(); onToggleFav(); }}>
+                <Heart className={`h-4 w-4 sm:h-3.5 sm:w-3.5 transition-all ${isFav ? 'fill-rose-400 scale-110' : ''}`} />
               </button>
             )}
-            <button className={`h-7 w-7 p-0 rounded-lg flex items-center justify-center transition-transform duration-300 text-white/12 ${selected ? 'rotate-180' : ''}`} onClick={(e) => { e.stopPropagation(); onSelect(); }}>
-              <ChevronDown className="h-3.5 w-3.5" />
+            <button className={`h-8 w-8 sm:h-7 sm:w-7 p-0 rounded-lg flex items-center justify-center transition-transform duration-300 text-white/12 ${selected ? 'rotate-180' : ''}`} onClick={(e) => { e.stopPropagation(); onSelect(); }}>
+              <ChevronDown className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
             </button>
           </div>
         </div>
         {/* Main content */}
-        <button onClick={onSelect} className="w-full text-left px-6 pb-5">
-          <h3 className="text-[15px] font-semibold text-white/90 group-hover:text-amber-200 transition-colors leading-tight">{outfit.nombre}</h3>
+        <button onClick={onSelect} className="w-full text-left px-4 sm:px-6 pb-4 sm:pb-5">
+          <h3 className="text-sm sm:text-[15px] font-semibold text-white/90 group-hover:text-amber-200 transition-colors leading-tight">{outfit.nombre}</h3>
           {rating !== undefined && (
             <div className="flex items-center gap-0.5 mt-1.5">
               {[1, 2, 3, 4, 5].map(n => (
