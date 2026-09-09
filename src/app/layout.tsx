@@ -16,9 +16,6 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "StyleVault — Tu Estilista Inteligente",
   description: "Sistema inteligente de sugerencias de outfit basado en tu inventario personal de ropa.",
-  icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
-  },
 };
 
 export default function RootLayout({
