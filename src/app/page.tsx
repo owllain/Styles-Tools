@@ -57,6 +57,18 @@ interface Suggestion {
 interface OutfitBasic { id: string; nombre: string; descripcion: string; ocasion: string[]; momento: string[]; clima: string[]; estilo: string[]; paletaColores: string[]; prendaSuperior?: string; pantalon?: string; calzado?: string; corbata?: string; abrigo?: string; accesorios?: string[]; }
 interface WeeklyDay { day: string; dayLabel: string; dateStr: string; outfit: any; garments: GarmentDetail[]; score: number; }
 
+const TAB_DESCRIPTIONS: Record<string, { title: string; desc: string }> = {
+  suggest: { title: 'Sugerencias Inteligentes', desc: 'Recomendaciones curadas en tiempo real según clima de San José, ocasión del día y estética preferida.' },
+  weekly: { title: 'Planificador Semanal', desc: 'Agenda y planifica tus outfits de lunes a domingo sincronizados con el pronóstico meteorológico.' },
+  wardrobe: { title: 'Inventario Maestro de Ropa', desc: 'Catálogo clasificado de 46 prendas exclusivas organizadas por categoría, color y textura.' },
+  explore: { title: 'Explorador de Combinaciones', desc: 'Catálogo completo con buscador y filtros avanzados para las 145 combinaciones curadas.' },
+  collections: { title: 'Colecciones Temáticas', desc: 'Curadurías de estilo por estética: Noir Sophistiqué, Old Money, Corporate Tech Lord y Rockero.' },
+  calendar: { title: 'Calendario & Historial de Uso', desc: 'Historial de outfits registrados y fechas de uso para rotar tu guardarropa y evitar repeticiones.' },
+  mixmatch: { title: 'Mix & Match Interactivo', desc: 'Laboratorio de combinaciones para experimentar libremente con prendas superiores, pantalones y calzado.' },
+  favorites: { title: 'Tus Outfits Favoritos', desc: 'Colección privada de tus mejores combinaciones guardadas, listas para ver en detalle o exportar.' },
+  stats: { title: 'Estadísticas & Métricas de Armario', desc: 'Métricas de frecuencia de uso, prendas más combinadas y balance de tu ADN estilístico.' },
+};
+
 function useFavorites() {
   const [favs, setFavs] = useState<string[]>(() => {
     if (typeof window === 'undefined') return [];
@@ -297,7 +309,19 @@ export default function StyleVaultPage() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [greeting, setGreeting] = useState({ text: 'Hola', emoji: '\u{1F44B}', sub: 'Cargando...' });
+  const [showMobileMore, setShowMobileMore] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  const switchTab = useCallback((tab: string) => {
+    setActiveTab(tab);
+    setShowMobileMore(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const el = document.querySelector('.tab-scroll-inner');
+    if (el) {
+      const trigger = el.querySelector(`[data-state="active"], [value="${tab}"]`);
+      if (trigger) (trigger as HTMLElement).scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+  }, []);
   useEffect(() => {
     setGreeting(getTimeGreeting());
     setMounted(true);
@@ -431,8 +455,11 @@ export default function StyleVaultPage() {
                 <Warehouse className="h-4 w-4 text-amber-100" />
               </div>
               <div>
-                <h1 className="text-base font-bold tracking-tight text-white header-logo-shimmer">StyleVault</h1>
-                <p className="text-[9px] text-white/25 -mt-0.5 tracking-[0.2em] uppercase font-medium">Enrique Cascante</p>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-base font-bold tracking-tight text-white header-logo-shimmer">StyleVault</h1>
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-amber-300 tracking-wider">PRO</span>
+                </div>
+                <p className="text-[9px] text-white/35 -mt-0.5 tracking-[0.15em] uppercase font-medium">Asesor de Estilo · Enrique Cascante</p>
               </div>
             </div>
             <div className="flex items-center gap-2.5">
@@ -452,8 +479,8 @@ export default function StyleVaultPage() {
           </div>
         </header>
 
-        <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
-          <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); const el = document.querySelector('.tab-scroll-inner'); if (el) { const trigger = el.querySelector(`[data-state="active"]`); if (trigger) trigger.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }); } }} className="w-full">
+        <main className="flex-1 max-w-7xl mx-auto w-full px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6 pb-28 sm:pb-8">
+          <Tabs value={activeTab} onValueChange={(v) => switchTab(v)} className="w-full">
             <div className="tab-scroll-container">
               <TabsList className="tab-scroll-inner bg-white/[0.025] border border-white/[0.05] rounded-2xl p-1.5 w-full sm:w-auto backdrop-blur-sm">
               <TabsTrigger value="suggest" className="rounded-xl data-[state=active]:bg-amber-500/15 data-[state=active]:text-amber-400 data-[state=active]:shadow-[0_0_15px_rgba(245,158,11,0.08)] gap-1.5 text-xs sm:text-sm transition-all duration-300">
@@ -484,6 +511,26 @@ export default function StyleVaultPage() {
                 <BarChart3 className="h-3.5 w-3.5" /><span className="hidden sm:inline">Estadisticas</span><span className="sm:hidden">{'\u{1F4CA}'}</span>
               </TabsTrigger>
               </TabsList>
+            </div>
+
+            {/* Active Section Descriptive Subtitle Banner */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1 pt-3 pb-1 mb-1">
+              <div>
+                <h2 className="text-sm sm:text-base font-bold text-white/90 flex items-center gap-2">
+                  {TAB_DESCRIPTIONS[activeTab]?.title}
+                </h2>
+                <p className="text-[11px] sm:text-xs text-white/40 mt-0.5 leading-relaxed max-w-2xl">
+                  {TAB_DESCRIPTIONS[activeTab]?.desc}
+                </p>
+              </div>
+              {weather && (
+                <div className="flex items-center gap-1.5 self-start sm:self-auto px-3 py-1.5 rounded-full bg-amber-500/[0.08] border border-amber-500/20 text-amber-300 text-[11px] font-medium shrink-0 shadow-sm">
+                  <Thermometer className="h-3.5 w-3.5 text-amber-400" />
+                  <span>{weather.tempC}°C San José</span>
+                  <span className="text-white/20">|</span>
+                  <span className="capitalize">{weather.description}</span>
+                </div>
+              )}
             </div>
 
             {/* === SUGERENCIAS TAB === */}
@@ -787,6 +834,123 @@ export default function StyleVaultPage() {
               <StatsSection worn={worn} ratings={ratings} favs={favs} />
             </TabsContent>
           </Tabs>
+
+          {/* Mobile Bottom Floating Dock (Pro Experience) */}
+          <nav aria-label="Navegación móvil rápida" className="fixed bottom-3 inset-x-3 sm:hidden z-40">
+            <div className="bg-[#0e0e13]/92 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.85)] p-1.5 flex items-center justify-around">
+              <button
+                type="button"
+                onClick={() => switchTab('suggest')}
+                className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-xl transition-all duration-200 active:scale-90 ${
+                  activeTab === 'suggest' ? 'bg-amber-500/20 text-amber-300 font-semibold shadow-[0_0_12px_rgba(245,158,11,0.2)]' : 'text-white/45 hover:text-white/80'
+                }`}
+              >
+                <Sparkles className="h-4 w-4" />
+                <span className="text-[10px] mt-0.5">Sugerir</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => switchTab('weekly')}
+                className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-xl transition-all duration-200 active:scale-90 ${
+                  activeTab === 'weekly' ? 'bg-white/15 text-white font-semibold' : 'text-white/45 hover:text-white/80'
+                }`}
+              >
+                <Calendar className="h-4 w-4" />
+                <span className="text-[10px] mt-0.5">Semana</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => switchTab('wardrobe')}
+                className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-xl transition-all duration-200 active:scale-90 ${
+                  activeTab === 'wardrobe' ? 'bg-white/15 text-white font-semibold' : 'text-white/45 hover:text-white/80'
+                }`}
+              >
+                <Layers className="h-4 w-4" />
+                <span className="text-[10px] mt-0.5">Ropa</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => switchTab('mixmatch')}
+                className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-xl transition-all duration-200 active:scale-90 ${
+                  activeTab === 'mixmatch' ? 'bg-rose-500/20 text-rose-300 font-semibold' : 'text-white/45 hover:text-white/80'
+                }`}
+              >
+                <Shuffle className="h-4 w-4" />
+                <span className="text-[10px] mt-0.5">Mix</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowMobileMore(true)}
+                className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-xl transition-all duration-200 active:scale-90 relative ${
+                  ['explore', 'collections', 'calendar', 'favorites', 'stats'].includes(activeTab)
+                    ? 'bg-amber-500/15 text-amber-300 font-semibold'
+                    : 'text-white/45 hover:text-white/80'
+                }`}
+              >
+                <List className="h-4 w-4" />
+                <span className="text-[10px] mt-0.5">Más</span>
+                {favs.length > 0 && (
+                  <span className="absolute top-1 right-2.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-[#0e0e13]" />
+                )}
+              </button>
+            </div>
+          </nav>
+
+          {/* Mobile "Más Secciones" Modal */}
+          <Dialog open={showMobileMore} onOpenChange={setShowMobileMore}>
+            <DialogContent className="bg-[#111115] border-white/10 rounded-2xl max-w-sm w-[92vw] p-5 max-h-[85vh] overflow-y-auto backdrop-blur-2xl">
+              <DialogHeader className="pb-3 border-b border-white/[0.06]">
+                <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-amber-400" />
+                  Todas las Secciones
+                </DialogTitle>
+                <DialogDescription className="text-xs text-white/40">
+                  Navega rápidamente por todas las herramientas de StyleVault
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid grid-cols-1 gap-2 pt-2">
+                {[
+                  { id: 'suggest', label: 'Sugerencias Inteligentes', desc: 'Looks contextuales según clima y evento', icon: Sparkles, color: 'text-amber-400 bg-amber-500/10' },
+                  { id: 'weekly', label: 'Planificador Semanal', desc: 'Organiza tus outfits de lunes a domingo', icon: Calendar, color: 'text-blue-400 bg-blue-500/10' },
+                  { id: 'wardrobe', label: 'Inventario Maestro', desc: '46 prendas con detalles y materiales', icon: Layers, color: 'text-purple-400 bg-purple-500/10' },
+                  { id: 'explore', label: 'Explorar Outfits', desc: 'Buscador y catálogo de 145 looks', icon: Compass, color: 'text-teal-400 bg-teal-500/10' },
+                  { id: 'collections', label: 'Colecciones Temáticas', desc: 'Noir, Old Money, Tech Lord y Rock', icon: FolderOpen, color: 'text-sky-400 bg-sky-500/10' },
+                  { id: 'calendar', label: 'Calendario de Uso', desc: 'Registro histórico de outfits usados', icon: CalendarDays, color: 'text-emerald-400 bg-emerald-500/10' },
+                  { id: 'mixmatch', label: 'Mix & Match', desc: 'Probador interactivo de combinaciones', icon: Shuffle, color: 'text-rose-400 bg-rose-500/10' },
+                  { id: 'favorites', label: 'Favoritos', desc: `${favs.length} outfits guardados`, icon: Heart, color: 'text-pink-400 bg-pink-500/10', badge: favs.length > 0 ? `${favs.length}` : undefined },
+                  { id: 'stats', label: 'Estadísticas del Armario', desc: 'Métricas de uso y ADN de estilo', icon: BarChart3, color: 'text-amber-400 bg-amber-500/10' },
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => switchTab(tab.id)}
+                    className={`w-full flex items-center justify-between p-3 rounded-xl border text-left transition-all duration-200 active:scale-[0.98] ${
+                      activeTab === tab.id
+                        ? 'border-amber-500/40 bg-amber-500/10 text-white'
+                        : 'border-white/[0.05] bg-white/[0.02] text-white/70 hover:bg-white/[0.05] hover:text-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${tab.color}`}>
+                        <tab.icon className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-semibold truncate flex items-center gap-1.5">
+                          {tab.label}
+                          {tab.badge && (
+                            <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                              {tab.badge}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-white/35 truncate mt-0.5">{tab.desc}</p>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-white/20 shrink-0 ml-2" />
+                  </button>
+                ))}
+              </div>
+            </DialogContent>
+          </Dialog>
         </main>
 
         {/* Footer */}
@@ -993,7 +1157,7 @@ function OutfitDetailDialog({ outfit: s, onClose, isFav, onToggleFav, worn, rati
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="bg-[#111113] border-white/[0.07] rounded-2xl max-w-lg w-[95vw] p-0 overflow-hidden backdrop-blur-xl">
+      <DialogContent className="bg-[#111113] border-white/[0.07] rounded-2xl max-w-lg w-[95vw] p-0 overflow-hidden backdrop-blur-xl max-h-[88vh] overflow-y-auto">
         {/* Header gradient */}
         <div className="relative">
           <div className="h-36 bg-gradient-to-br from-amber-900/15 via-purple-900/10 to-transparent relative overflow-hidden">
